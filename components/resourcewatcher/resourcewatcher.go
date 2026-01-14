@@ -168,6 +168,7 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 	return fmt.Errorf("unknown port: %s", port)
 }
 
+// startWatching blocks until ctx is cancelled - follows same pattern as HTTP server
 func (c *Component) startWatching(ctx context.Context, handler module.Handler, start Start) error {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
@@ -205,6 +206,21 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 	list := &unstructured.UnstructuredList{}
 	list.SetGroupVersionKind(gvk)
 
+	// Build event type filter map
+	eventFilter := make(map[EventType]bool)
+	if len(start.EventTypes) > 0 {
+		for _, et := range start.EventTypes {
+			eventFilter[et] = true
+		}
+	}
+
+	// Start the watch
+	watcher, err := k8sClient.Watch(ctx, list, listOpts)
+	if err != nil {
+		return c.handleError(handler, start.Context, fmt.Sprintf("failed to start watch: %v", err))
+	}
+	defer watcher.Stop()
+
 	// Emit status if enabled
 	c.emitStatus(handler, ctx, Status{
 		Watching:   true,
@@ -213,106 +229,84 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 		Namespace:  start.Namespace,
 	})
 
-	// Start watching in goroutine - will stop when ctx is cancelled
-	go func() {
-		defer func() {
-			// Emit stopped status if enabled
-			c.emitStatus(handler, context.Background(), Status{
-				Watching: false,
-			})
-		}()
-
-		// Build event type filter map
-		eventFilter := make(map[EventType]bool)
-		if len(start.EventTypes) > 0 {
-			for _, et := range start.EventTypes {
-				eventFilter[et] = true
-			}
-		}
-
-		// Start the watch
-		watcher, err := k8sClient.Watch(ctx, list, listOpts)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to start watch")
-			_ = c.handleError(handler, start.Context, fmt.Sprintf("failed to start watch: %v", err))
-			return
-		}
-		defer watcher.Stop()
-
-		// If includeInitialList, first list existing resources
-		if start.IncludeInitialList {
-			existingList := &unstructured.UnstructuredList{}
-			existingList.SetGroupVersionKind(gvk)
-			if err := k8sClient.List(ctx, existingList, listOpts); err != nil {
-				log.Error().Err(err).Msg("Failed to list existing resources")
-			} else {
-				for _, item := range existingList.Items {
-					if shouldEmitEvent(EventAdded, eventFilter) {
-						c.emitEvent(handler, start.Context, EventAdded, &item, nil)
-					}
-					// Cache the resource
-					c.cacheResource(&item)
-				}
-			}
-		}
-
-		// Process watch events
-		for {
-			select {
-			case <-ctx.Done():
-				log.Debug().Msg("Watch context cancelled")
-				return
-			case event, ok := <-watcher.ResultChan():
-				if !ok {
-					log.Debug().Msg("Watch channel closed, restarting...")
-					// Channel closed, try to restart
-					time.Sleep(time.Second)
-					watcher, err = k8sClient.Watch(ctx, list, listOpts)
-					if err != nil {
-						log.Error().Err(err).Msg("Failed to restart watch")
-						return
-					}
-					continue
-				}
-
-				obj, ok := event.Object.(*unstructured.Unstructured)
-				if !ok {
-					continue
-				}
-
-				var eventType EventType
-				switch event.Type {
-				case watch.Added:
-					eventType = EventAdded
-				case watch.Modified:
-					eventType = EventModified
-				case watch.Deleted:
-					eventType = EventDeleted
-				default:
-					continue
-				}
-
-				if shouldEmitEvent(eventType, eventFilter) {
-					// Get old resource from cache for MODIFIED events
-					var oldResource map[string]any
-					if eventType == EventModified {
-						oldResource = c.getCachedResource(obj)
-					}
-
-					c.emitEvent(handler, start.Context, eventType, obj, oldResource)
-				}
-
-				// Update cache
-				if eventType == EventDeleted {
-					c.removeCachedResource(obj)
-				} else {
-					c.cacheResource(obj)
-				}
-			}
-		}
+	defer func() {
+		// Emit stopped status if enabled
+		c.emitStatus(handler, context.Background(), Status{
+			Watching: false,
+		})
 	}()
 
-	return nil
+	// If includeInitialList, first list existing resources
+	if start.IncludeInitialList {
+		existingList := &unstructured.UnstructuredList{}
+		existingList.SetGroupVersionKind(gvk)
+		if err := k8sClient.List(ctx, existingList, listOpts); err != nil {
+			log.Error().Err(err).Msg("Failed to list existing resources")
+		} else {
+			for _, item := range existingList.Items {
+				if shouldEmitEvent(EventAdded, eventFilter) {
+					c.emitEvent(handler, start.Context, EventAdded, &item, nil)
+				}
+				// Cache the resource
+				c.cacheResource(&item)
+			}
+		}
+	}
+
+	// Process watch events - blocks until ctx is cancelled
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug().Msg("Watch context cancelled")
+			return ctx.Err()
+		case event, ok := <-watcher.ResultChan():
+			if !ok {
+				log.Debug().Msg("Watch channel closed, restarting...")
+				// Channel closed, try to restart
+				time.Sleep(time.Second)
+				watcher, err = k8sClient.Watch(ctx, list, listOpts)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to restart watch")
+					return err
+				}
+				continue
+			}
+
+			obj, ok := event.Object.(*unstructured.Unstructured)
+			if !ok {
+				continue
+			}
+
+			var eventType EventType
+			switch event.Type {
+			case watch.Added:
+				eventType = EventAdded
+			case watch.Modified:
+				eventType = EventModified
+			case watch.Deleted:
+				eventType = EventDeleted
+			default:
+				continue
+			}
+
+			if shouldEmitEvent(eventType, eventFilter) {
+				// Get old resource from cache for MODIFIED events
+				var oldResource map[string]any
+				if eventType == EventModified {
+					oldResource = c.getCachedResource(obj)
+				}
+
+				c.emitEvent(handler, start.Context, eventType, obj, oldResource)
+			}
+
+			// Update cache
+			if eventType == EventDeleted {
+				c.removeCachedResource(obj)
+			} else {
+				c.cacheResource(obj)
+			}
+		}
+	}
 }
 
 func (c *Component) emitEvent(handler module.Handler, userCtx any, eventType EventType, obj *unstructured.Unstructured, oldResource map[string]any) {
