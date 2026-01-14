@@ -399,7 +399,12 @@ func shouldEmitEvent(eventType EventType, filter map[EventType]bool) bool {
 }
 
 func (c *Component) Ports() []module.Port {
-	return []module.Port{
+	c.settingsLock.RLock()
+	enableErrorPort := c.settings.EnableErrorPort
+	enableStatusPort := c.settings.EnableStatusPort
+	c.settingsLock.RUnlock()
+
+	ports := []module.Port{
 		{
 			Name:     v1alpha1.ClientPort,
 			Label:    "Client",
@@ -409,7 +414,6 @@ func (c *Component) Ports() []module.Port {
 			Name:          v1alpha1.SettingsPort,
 			Label:         "Settings",
 			Configuration: Settings{},
-			Position:      module.Left,
 		},
 		{
 			Name:  StartPort,
@@ -428,21 +432,29 @@ func (c *Component) Ports() []module.Port {
 			Configuration: Event{},
 			Position:      module.Right,
 		},
-		{
+	}
+
+	if enableErrorPort {
+		ports = append(ports, module.Port{
 			Name:          ErrorPort,
 			Label:         "Error",
 			Source:        true,
 			Configuration: Error{},
 			Position:      module.Bottom,
-		},
-		{
+		})
+	}
+
+	if enableStatusPort {
+		ports = append(ports, module.Port{
 			Name:          StatusPort,
 			Label:         "Status",
 			Source:        true,
 			Configuration: Status{},
 			Position:      module.Right,
-		},
+		})
 	}
+
+	return ports
 }
 
 var _ module.Component = (*Component)(nil)
