@@ -2,6 +2,7 @@ package resourcewatcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -13,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -280,11 +282,11 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 
 				var eventType EventType
 				switch event.Type {
-				case "ADDED":
+				case watch.Added:
 					eventType = EventAdded
-				case "MODIFIED":
+				case watch.Modified:
 					eventType = EventModified
-				case "DELETED":
+				case watch.Deleted:
 					eventType = EventDeleted
 				default:
 					continue
@@ -313,9 +315,9 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 	return nil
 }
 
-func (c *Component) emitEvent(handler module.Handler, ctx any, eventType EventType, obj *unstructured.Unstructured, oldResource map[string]any) {
+func (c *Component) emitEvent(handler module.Handler, userCtx any, eventType EventType, obj *unstructured.Unstructured, oldResource map[string]any) {
 	event := Event{
-		Context:     ctx,
+		Context:     userCtx,
 		EventType:   eventType,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		APIVersion:  obj.GetAPIVersion(),
@@ -334,19 +336,19 @@ func (c *Component) emitEvent(handler module.Handler, ctx any, eventType EventTy
 	}
 }
 
-func (c *Component) handleError(handler module.Handler, ctx any, errMsg string) error {
+func (c *Component) handleError(handler module.Handler, userCtx any, errMsg string) error {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
 
 	if enableErrorPort {
 		_ = handler(context.Background(), ErrorPort, Error{
-			Context: ctx,
+			Context: userCtx,
 			Error:   errMsg,
 		})
 		return nil
 	}
-	return fmt.Errorf("%s", errMsg)
+	return errors.New(errMsg)
 }
 
 func (c *Component) emitStatus(handler module.Handler, ctx context.Context, status Status) {
