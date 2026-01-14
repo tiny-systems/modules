@@ -3,20 +3,25 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	_ "github.com/tiny-systems/example-module/components/echo"
-	"github.com/tiny-systems/module/cli"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/tiny-systems/module/cli"
+	"github.com/tiny-systems/module/module"
+	"github.com/tiny-systems/module/registry"
+
+	// Import components to register them
+	_ "github.com/tiny-systems/kubernetes-module/components/resourcewatcher"
 )
 
 // RootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "server",
-	Short: "tiny-system's example module",
+	Short: "tiny-system's kubernetes module",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
@@ -29,6 +34,24 @@ func main() {
 	if viper.GetBool("debug") {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
+
+	// Declare RBAC requirements for kubernetes-module
+	// ResourceWatcher needs to watch/list/get any resources
+	registry.SetRequirements(module.Requirements{
+		RBAC: module.RBACRequirements{
+			// Enable base K8s resource access (pods, services, configmaps, secrets, etc.)
+			EnableKubernetesResourceAccess: true,
+			// Additional rules for cluster-wide resources and CRDs
+			ExtraRules: []module.RBACRule{
+				// Watch all resources (wildcard)
+				{
+					APIGroups: []string{"*"},
+					Resources: []string{"*"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+			},
+		},
+	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
