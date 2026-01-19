@@ -238,6 +238,9 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 	// Track watching state for control port
 	c.setWatching(true, start)
 
+	// Trigger reconcile to update control port in UI
+	_ = handler(ctx, v1alpha1.ReconcilePort, nil)
+
 	// Emit status if enabled
 	c.emitStatus(handler, ctx, Status{
 		Watching:   true,
@@ -249,6 +252,9 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 	defer func() {
 		// Clear watching state
 		c.setWatching(false, Start{})
+
+		// Trigger reconcile to update control port in UI
+		_ = handler(context.Background(), v1alpha1.ReconcilePort, nil)
 
 		// Emit stopped status if enabled
 		c.emitStatus(handler, context.Background(), Status{
