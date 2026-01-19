@@ -104,6 +104,15 @@ type Error struct {
 	Error   string `json:"error" title:"Error" description:"Error message"`
 }
 
+// Control provides dashboard info for the component
+type Control struct {
+	Status        string `json:"status" title:"Status" readonly:"true"`
+	APIVersion    string `json:"apiVersion,omitempty" title:"API Version" readonly:"true"`
+	Kind          string `json:"kind,omitempty" title:"Kind" readonly:"true"`
+	Namespace     string `json:"namespace,omitempty" title:"Namespace" readonly:"true"`
+	LabelSelector string `json:"labelSelector,omitempty" title:"Label Selector" readonly:"true"`
+}
+
 // Component implements the ResourceWatcher
 type Component struct {
 	settings     Settings
@@ -112,6 +121,11 @@ type Component struct {
 	k8sClient     client.WithWatch
 	k8sNamespace  string
 	k8sClientLock sync.RWMutex
+
+	// Track watching state for control port
+	watching     bool
+	lastStart    Start
+	watchingLock sync.RWMutex
 
 	// Store last known state for detecting changes
 	resourceCache     map[string]map[string]any
@@ -221,6 +235,9 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 	}
 	defer watcher.Stop()
 
+	// Track watching state for control port
+	c.setWatching(true, start)
+
 	// Emit status if enabled
 	c.emitStatus(handler, ctx, Status{
 		Watching:   true,
@@ -230,6 +247,9 @@ func (c *Component) startWatching(ctx context.Context, handler module.Handler, s
 	})
 
 	defer func() {
+		// Clear watching state
+		c.setWatching(false, Start{})
+
 		// Emit stopped status if enabled
 		c.emitStatus(handler, context.Background(), Status{
 			Watching: false,
@@ -345,6 +365,34 @@ func (c *Component) handleError(handler module.Handler, userCtx any, errMsg stri
 	return errors.New(errMsg)
 }
 
+func (c *Component) setWatching(watching bool, start Start) {
+	c.watchingLock.Lock()
+	defer c.watchingLock.Unlock()
+	c.watching = watching
+	if watching {
+		c.lastStart = start
+	}
+}
+
+func (c *Component) getControl() Control {
+	c.watchingLock.RLock()
+	defer c.watchingLock.RUnlock()
+
+	if !c.watching {
+		return Control{
+			Status: "Not watching",
+		}
+	}
+
+	return Control{
+		Status:        "Watching",
+		APIVersion:    c.lastStart.APIVersion,
+		Kind:          c.lastStart.Kind,
+		Namespace:     c.lastStart.Namespace,
+		LabelSelector: c.lastStart.LabelSelector,
+	}
+}
+
 func (c *Component) emitStatus(handler module.Handler, ctx context.Context, status Status) {
 	c.settingsLock.RLock()
 	enableStatusPort := c.settings.EnableStatusPort
@@ -427,6 +475,12 @@ func (c *Component) Ports() []module.Port {
 			Source:        true,
 			Configuration: Event{},
 			Position:      module.Right,
+		},
+		{
+			Name:          v1alpha1.ControlPort,
+			Label:         "Dashboard",
+			Source:        true,
+			Configuration: c.getControl(),
 		},
 	}
 
