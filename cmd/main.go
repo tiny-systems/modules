@@ -15,6 +15,9 @@ import (
 	"github.com/tiny-systems/module/registry"
 
 	// Import components to register them
+	_ "github.com/tiny-systems/kubernetes-module/components/chatops/podlogs"
+	_ "github.com/tiny-systems/kubernetes-module/components/chatops/podstatus"
+	_ "github.com/tiny-systems/kubernetes-module/components/chatops/restartdeployment"
 	_ "github.com/tiny-systems/kubernetes-module/components/resourcewatcher"
 )
 
@@ -36,18 +39,29 @@ func main() {
 	}
 
 	// Declare RBAC requirements for kubernetes-module
-	// ResourceWatcher needs to watch/list/get any resources
 	registry.SetRequirements(module.Requirements{
 		RBAC: module.RBACRequirements{
 			// Enable base K8s resource access (pods, services, configmaps, secrets, etc.)
 			EnableKubernetesResourceAccess: true,
 			// Additional rules for cluster-wide resources and CRDs
 			ExtraRules: []module.RBACRule{
-				// Watch all resources (wildcard)
+				// Watch all resources (wildcard) - for ResourceWatcher
 				{
 					APIGroups: []string{"*"},
 					Resources: []string{"*"},
 					Verbs:     []string{"get", "list", "watch"},
+				},
+				// Deployments update - for restart/scale operations
+				{
+					APIGroups: []string{"apps"},
+					Resources: []string{"deployments"},
+					Verbs:     []string{"update", "patch"},
+				},
+				// Pod logs access
+				{
+					APIGroups: []string{""},
+					Resources: []string{"pods/log"},
+					Verbs:     []string{"get"},
 				},
 			},
 		},
