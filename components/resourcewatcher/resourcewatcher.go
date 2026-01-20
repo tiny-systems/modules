@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	ComponentName = "resource_watcher"
+	ComponentName = "resource_watch"
 
 	StartPort  = "start"
 	EventPort  = "event"

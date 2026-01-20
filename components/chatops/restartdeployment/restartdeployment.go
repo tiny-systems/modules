@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ComponentName = "restart_deployment"
+	ComponentName = "deployment_restart"
 	RequestPort   = "request"
 	ResultPort    = "result"
 	ErrorPort     = "error"
