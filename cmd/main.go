@@ -15,9 +15,6 @@ import (
 	"github.com/tiny-systems/module/registry"
 
 	// Import components to register them
-	_ "github.com/tiny-systems/kubernetes-module/components/chatops/podlogs"
-	_ "github.com/tiny-systems/kubernetes-module/components/chatops/podstatus"
-	_ "github.com/tiny-systems/kubernetes-module/components/chatops/restartdeployment"
 	_ "github.com/tiny-systems/kubernetes-module/components/resourcewatcher"
 )
 

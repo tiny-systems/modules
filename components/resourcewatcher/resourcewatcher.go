@@ -69,7 +69,7 @@ type Start struct {
 
 // Event is emitted for each resource change
 type Event struct {
-	Context any `json:"context,omitempty" title:"Context" description:"Context passed from start message"`
+	Context any `json:"context,omitempty" configurable:"true" title:"Context" description:"Context passed from start message"`
 
 	// Event metadata
 	EventType EventType `json:"eventType" title:"Event Type" description:"Type of event: ADDED, MODIFIED, DELETED"`
@@ -100,7 +100,7 @@ type Status struct {
 
 // Error output for error port
 type Error struct {
-	Context any    `json:"context,omitempty" title:"Context"`
+	Context any    `json:"context,omitempty" configurable:"true" title:"Context"`
 	Error   string `json:"error" title:"Error" description:"Error message"`
 }
 
