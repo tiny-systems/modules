@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ComponentName = "pod_status"
+	ComponentName = "pod_status_get"
 	RequestPort   = "request"
 	StatusPort    = "status"
 	ErrorPort     = "error"
