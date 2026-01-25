@@ -45,3 +45,15 @@ Key points:
 - Use `type Context any` not just `any` directly - this enables proper schema generation
 - Add `configurable:"true"` to Context fields on both input AND output ports
 - Error structs should only have Context and Error message, not duplicate the entire Request
+
+## Releasing
+
+After making changes, bump the version:
+
+```bash
+./release.sh patch   # For bug fixes and small changes
+./release.sh minor   # For new features
+./release.sh major   # For breaking changes
+```
+
+This creates a git tag and pushes it. Always bump after committing changes.
