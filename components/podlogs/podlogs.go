@@ -128,7 +128,7 @@ func (c *Component) initLogsClient() {
 	c.logsClient = logsClient
 }
 
-func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) error {
+func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
 	defaultNS := c.k8sNamespace
@@ -163,16 +163,10 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		return c.handleError(ctx, handler, req, err.Error())
 	}
 
-	result := handler(ctx, LogsPort, Logs{
+	return handler(ctx, LogsPort, Logs{
 		Context: req.Context,
 		PodLogs: *podLogs,
 	})
-	if result != nil {
-		if err, ok := result.(error); ok {
-			return err
-		}
-	}
-	return nil
 }
 
 func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) error {
