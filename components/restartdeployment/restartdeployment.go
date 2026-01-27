@@ -128,17 +128,18 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) error {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) any {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
 
 	if enableErrorPort {
-		_ = handler(ctx, ErrorPort, Error{
+		// Return handler result to propagate responses back through the call chain
+		// (critical for blocking I/O patterns like HTTP Server)
+		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
 			Error:   errMsg,
 		})
-		return nil
 	}
 	return errors.New(errMsg)
 }

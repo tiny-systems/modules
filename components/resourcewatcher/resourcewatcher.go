@@ -183,7 +183,7 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 }
 
 // startWatching blocks until ctx is cancelled - follows same pattern as HTTP server
-func (c *Component) startWatching(ctx context.Context, handler module.Handler, start Start) error {
+func (c *Component) startWatching(ctx context.Context, handler module.Handler, start Start) any {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
 	c.k8sClientLock.RUnlock()
@@ -356,17 +356,18 @@ func (c *Component) emitEvent(handler module.Handler, userCtx any, eventType Eve
 	}
 }
 
-func (c *Component) handleError(handler module.Handler, userCtx any, errMsg string) error {
+func (c *Component) handleError(handler module.Handler, userCtx any, errMsg string) any {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
 
 	if enableErrorPort {
-		_ = handler(context.Background(), ErrorPort, Error{
+		// Return handler result to propagate responses back through the call chain
+		// (critical for blocking I/O patterns like HTTP Server)
+		return handler(context.Background(), ErrorPort, Error{
 			Context: userCtx,
 			Error:   errMsg,
 		})
-		return nil
 	}
 	return errors.New(errMsg)
 }

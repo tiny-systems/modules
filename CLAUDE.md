@@ -7,6 +7,21 @@
 - Flat structure over deep nesting
 - Idiomatic Go - if err != nil { return } pattern
 
+## CRITICAL: Handler Response Propagation
+
+**NEVER ignore the return value of handler() calls. ALWAYS return it.**
+
+```go
+// WRONG - breaks blocking I/O, causes timeouts
+_ = handler(ctx, ErrorPort, Error{...})
+return nil
+
+// CORRECT - propagates response back through call chain
+return handler(ctx, ErrorPort, Error{...})
+```
+
+Exception: `_reconcile` port calls can ignore returns (internal system port).
+
 ## Component Design
 
 - Handle() switch cases should be minimal - delegate to functions
