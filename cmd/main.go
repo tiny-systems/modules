@@ -1,24 +1,25 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+  "context"
+  "fmt"
+  "os"
+  "os/signal"
+  "syscall"
 
-	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/tiny-systems/module/cli"
-	"github.com/tiny-systems/module/module"
-	"github.com/tiny-systems/module/registry"
+  "github.com/rs/zerolog"
+  "github.com/spf13/cobra"
+  "github.com/spf13/viper"
+  "github.com/tiny-systems/module/cli"
+  "github.com/tiny-systems/module/module"
+  "github.com/tiny-systems/module/registry"
 
-	// Import components to register them
-	_ "github.com/tiny-systems/kubernetes-module/components/podlogs"
-	_ "github.com/tiny-systems/kubernetes-module/components/podstatus"
-	_ "github.com/tiny-systems/kubernetes-module/components/restartdeployment"
-	_ "github.com/tiny-systems/kubernetes-module/components/resourcewatcher"
+  // Import components to register them
+  _ "github.com/tiny-systems/kubernetes-module/components/podlogs"
+  _ "github.com/tiny-systems/kubernetes-module/components/podstatus"
+  _ "github.com/tiny-systems/kubernetes-module/components/resourcelist"
+  _ "github.com/tiny-systems/kubernetes-module/components/resourcewatcher"
+  _ "github.com/tiny-systems/kubernetes-module/components/workloadrestart"
 )
 
 // RootCmd represents the base command when called without any subcommands

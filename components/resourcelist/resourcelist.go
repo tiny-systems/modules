@@ -1,4 +1,4 @@
-package restartdeployment
+package resourcelist
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ComponentName = "deployment_restart"
+	ComponentName = "resource_list"
 	RequestPort   = "request"
 	ResultPort    = "result"
 	ErrorPort     = "error"
@@ -28,17 +28,18 @@ type Settings struct {
 	EnableErrorPort bool `json:"enableErrorPort" title:"Enable Error Port" description:"Output errors to error port instead of failing"`
 }
 
-// Request is the input to restart a deployment
+// Request is the input to list resources
 type Request struct {
-	Context    Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Namespace  string  `json:"namespace" required:"true" title:"Namespace" description:"Kubernetes namespace"`
-	Deployment string  `json:"deployment" required:"true" title:"Deployment" description:"Deployment name or app label"`
+	Context       Context  `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
+	Kinds         []string `json:"kinds,omitempty" title:"Kinds" description:"Resource kinds to list: Deployment, StatefulSet, DaemonSet (empty = all)"`
+	Namespace     string   `json:"namespace,omitempty" title:"Namespace" description:"Filter to specific namespace (empty = all namespaces)"`
+	LabelSelector string   `json:"labelSelector,omitempty" title:"Label Selector" description:"Filter by label expression (e.g., app=myapp, environment in (prod,staging))"`
 }
 
-// Result is the output with restart result
+// Result is the output with resource list
 type Result struct {
 	Context Context `json:"context,omitempty" configurable:"true" title:"Context"`
-	k8s.RestartResult
+	k8s.ResourceList
 }
 
 // Error output
@@ -47,13 +48,12 @@ type Error struct {
 	Error   string  `json:"error" title:"Error"`
 }
 
-// Component implements the deployment restarter
+// Component implements the resource list fetcher
 type Component struct {
 	settings     Settings
 	settingsLock sync.RWMutex
 
 	k8sClient     client.Client
-	k8sNamespace  string
 	k8sClientLock sync.RWMutex
 }
 
@@ -64,9 +64,9 @@ func (c *Component) Instance() module.Component {
 func (c *Component) GetInfo() module.ComponentInfo {
 	return module.ComponentInfo{
 		Name:        ComponentName,
-		Description: "Restart Deployment",
-		Info:        "Performs a rollout restart on a deployment. Can look up deployments by name or app label.",
-		Tags:        []string{"Kubernetes", "ChatOps", "Deployment", "Restart"},
+		Description: "Resource List",
+		Info:        "Lists Kubernetes workload resources (Deployments, StatefulSets, DaemonSets) with optional filtering by namespace and label selector. Returns resource details including name, namespace, kind, labels, replicas, and status.",
+		Tags:        []string{"Kubernetes", "Resources"},
 	}
 }
 
@@ -76,7 +76,6 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		if k8sProvider, ok := msg.(module.K8sClient); ok {
 			c.k8sClientLock.Lock()
 			c.k8sClient = k8sProvider.GetK8sClient()
-			c.k8sNamespace = k8sProvider.GetNamespace()
 			c.k8sClientLock.Unlock()
 		}
 		return nil
@@ -105,26 +104,26 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
-	defaultNS := c.k8sNamespace
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
 		return c.handleError(ctx, handler, req, "K8s client not available")
 	}
 
-	namespace := req.Namespace
-	if namespace == "" {
-		namespace = defaultNS
+	listReq := k8s.ListResourcesRequest{
+		Kinds:         req.Kinds,
+		Namespace:     req.Namespace,
+		LabelSelector: req.LabelSelector,
 	}
 
-	restartResult, err := k8s.RestartDeployment(ctx, k8sClient, namespace, req.Deployment)
+	resourceList, err := k8s.ListResources(ctx, k8sClient, listReq)
 	if err != nil {
 		return c.handleError(ctx, handler, req, err.Error())
 	}
 
 	return handler(ctx, ResultPort, Result{
-		Context:       req.Context,
-		RestartResult: *restartResult,
+		Context:      req.Context,
+		ResourceList: *resourceList,
 	})
 }
 
@@ -134,8 +133,6 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	c.settingsLock.RUnlock()
 
 	if enableErrorPort {
-		// Return handler result to propagate responses back through the call chain
-		// (critical for blocking I/O patterns like HTTP Server)
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
 			Error:   errMsg,
@@ -164,7 +161,7 @@ func (c *Component) Ports() []module.Port {
 			Name:  RequestPort,
 			Label: "Request",
 			Configuration: Request{
-				Deployment: "myapp",
+				Kinds: []string{"Deployment", "StatefulSet", "DaemonSet"},
 			},
 			Position: module.Left,
 		},
@@ -173,10 +170,18 @@ func (c *Component) Ports() []module.Port {
 			Label:  "Result",
 			Source: true,
 			Configuration: Result{
-				RestartResult: k8s.RestartResult{
-					Name:    "myapp",
-					Success: true,
-					Message: "Deployment myapp restarted",
+				ResourceList: k8s.ResourceList{
+					Resources: []k8s.ResourceInfo{
+						{
+							Name:      "myapp-api",
+							Namespace: "production",
+							Kind:      "Deployment",
+							Labels:    map[string]string{"app": "myapp", "environment": "prod"},
+							Replicas:  3,
+							Ready:     3,
+						},
+					},
+					Count: 1,
 				},
 			},
 			Position: module.Right,
