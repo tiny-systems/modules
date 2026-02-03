@@ -31,8 +31,8 @@ type Settings struct {
 // Request is the input to get pod status
 type Request struct {
 	Context       Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Namespace     string  `json:"namespace" required:"true" title:"Namespace" description:"Kubernetes namespace"`
-	LabelSelector string  `json:"labelSelector,omitempty" title:"Label Selector" description:"Filter pods by labels (e.g., app=myapp)"`
+	Namespace     string  `json:"namespace,omitempty" title:"Namespace" description:"Kubernetes namespace. Leave empty to search all namespaces."`
+	LabelSelector string  `json:"labelSelector" required:"true" minLength:"3" title:"Label Selector" description:"Filter pods by labels (e.g., app=myapp). Required to avoid listing all pods."`
 }
 
 // Status is the output with pod information
@@ -53,7 +53,6 @@ type Component struct {
 	settingsLock sync.RWMutex
 
 	k8sClient     client.Client
-	k8sNamespace  string
 	k8sClientLock sync.RWMutex
 }
 
@@ -76,7 +75,6 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		if k8sProvider, ok := msg.(module.K8sClient); ok {
 			c.k8sClientLock.Lock()
 			c.k8sClient = k8sProvider.GetK8sClient()
-			c.k8sNamespace = k8sProvider.GetNamespace()
 			c.k8sClientLock.Unlock()
 		}
 		return nil
@@ -105,19 +103,14 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
-	defaultNS := c.k8sNamespace
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
 		return c.handleError(ctx, handler, req, "K8s client not available")
 	}
 
-	namespace := req.Namespace
-	if namespace == "" {
-		namespace = defaultNS
-	}
-
-	podStatus, err := k8s.GetPodStatus(ctx, k8sClient, namespace, req.LabelSelector)
+	// Empty namespace = all namespaces
+	podStatus, err := k8s.GetPodStatus(ctx, k8sClient, req.Namespace, req.LabelSelector)
 	if err != nil {
 		return c.handleError(ctx, handler, req, err.Error())
 	}

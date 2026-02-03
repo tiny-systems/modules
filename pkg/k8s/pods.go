@@ -146,6 +146,7 @@ func FindPod(ctx context.Context, k8sClient client.Client, namespace, nameOrApp 
 }
 
 // listPods lists pods by label selector
+// If namespace is empty, lists across all namespaces
 func listPods(ctx context.Context, k8sClient client.Client, namespace, labelSelector string) ([]corev1.Pod, error) {
 	podList := &corev1.PodList{}
 
@@ -154,7 +155,10 @@ func listPods(ctx context.Context, k8sClient client.Client, namespace, labelSele
 		return nil, fmt.Errorf("invalid label selector: %w", err)
 	}
 
-	opts := []client.ListOption{client.InNamespace(namespace)}
+	opts := []client.ListOption{}
+	if namespace != "" {
+		opts = append(opts, client.InNamespace(namespace))
+	}
 	if len(labels) > 0 {
 		opts = append(opts, client.MatchingLabels(labels))
 	}
