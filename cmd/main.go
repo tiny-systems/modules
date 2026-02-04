@@ -18,6 +18,7 @@ import (
   _ "github.com/tiny-systems/kubernetes-module/components/daemonsetlist"
   _ "github.com/tiny-systems/kubernetes-module/components/deploymentlist"
   _ "github.com/tiny-systems/kubernetes-module/components/deploymentscale"
+  _ "github.com/tiny-systems/kubernetes-module/components/deploymentupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/eventwatcher"
   _ "github.com/tiny-systems/kubernetes-module/components/poddelete"
   _ "github.com/tiny-systems/kubernetes-module/components/podlist"
