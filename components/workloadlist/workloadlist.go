@@ -140,7 +140,8 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		listOpts = append(listOpts, selector)
 	}
 
-	var resources []ResourceInfo
+	// Initialize to empty slice (not nil) so it serializes as [] not null
+	resources := make([]ResourceInfo, 0)
 
 	for _, kind := range kinds {
 		switch kind {
