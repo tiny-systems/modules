@@ -26,6 +26,13 @@ const (
 	ErrorPort = "error"
 )
 
+// Control shows the current watcher status
+type Control struct {
+	Status        string `json:"status" title:"Status" readonly:"true"`
+	Namespace     string `json:"namespace,omitempty" title:"Namespace" readonly:"true"`
+	LabelSelector string `json:"labelSelector,omitempty" title:"Label Selector" readonly:"true"`
+}
+
 // Context type alias for schema generation
 type Context any
 
@@ -39,8 +46,7 @@ type Start struct {
 	Context Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through to events"`
 
 	// Scope
-	Namespace     string `json:"namespace,omitempty" title:"Namespace" description:"Namespace to watch. Leave empty for all namespaces"`
-	AllNamespaces bool   `json:"allNamespaces,omitempty" title:"All Namespaces" description:"Watch across all namespaces"`
+	Namespace string `json:"namespace" required:"true" title:"Namespace" description:"Namespace to watch"`
 
 	// Filtering
 	LabelSelector string `json:"labelSelector,omitempty" title:"Label Selector" description:"Filter by labels (e.g., app=nginx,env=prod)"`
@@ -108,11 +114,22 @@ type Component struct {
 
 	k8sClient     client.WithWatch
 	k8sClientLock sync.RWMutex
+
+	control     Control
+	controlLock sync.RWMutex
+
+	cancelFunc     context.CancelFunc
+	cancelFuncLock sync.Mutex
+
+	// watchDone is closed when the watcher stops, allowing waiters to unblock
+	watchDone     chan struct{}
+	watchDoneLock sync.Mutex
 }
 
 func (c *Component) Instance() module.Component {
 	return &Component{
 		settings: Settings{},
+		control:  Control{Status: "Not watching"},
 	}
 }
 
@@ -156,65 +173,136 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 			return nil
 		}
 
-		return c.startWatching(ctx, handler, in)
+		// If already running, wait for it to stop
+		if done := c.getWatchDone(); done != nil {
+			<-done
+			return nil
+		}
+
+		return c.runWatch(ctx, handler, in)
 	}
 
 	return fmt.Errorf("unknown port: %s", port)
 }
 
-func (c *Component) startWatching(ctx context.Context, handler module.Handler, start Start) any {
+func (c *Component) getWatchDone() chan struct{} {
+	c.watchDoneLock.Lock()
+	defer c.watchDoneLock.Unlock()
+	return c.watchDone
+}
+
+func (c *Component) setWatchDone(done chan struct{}) {
+	c.watchDoneLock.Lock()
+	defer c.watchDoneLock.Unlock()
+	c.watchDone = done
+}
+
+func (c *Component) setCancelFunc(fn context.CancelFunc) {
+	c.cancelFuncLock.Lock()
+	defer c.cancelFuncLock.Unlock()
+	c.cancelFunc = fn
+}
+
+func (c *Component) isRunning() bool {
+	c.cancelFuncLock.Lock()
+	defer c.cancelFuncLock.Unlock()
+	return c.cancelFunc != nil
+}
+
+func (c *Component) runWatch(ctx context.Context, handler module.Handler, start Start) error {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(handler, start.Context, "K8s client not available")
+		c.updateControl(ctx, handler, Control{Status: "Error: K8s client not available"})
+		return fmt.Errorf("K8s client not available")
 	}
 
 	// Build list options
-	listOpts := &client.ListOptions{}
-	if start.Namespace != "" && !start.AllNamespaces {
-		listOpts.Namespace = start.Namespace
+	listOpts := &client.ListOptions{
+		Namespace: start.Namespace,
 	}
 
 	if start.LabelSelector != "" {
 		selector, err := metav1.ParseToLabelSelector(start.LabelSelector)
 		if err != nil {
-			return c.handleError(handler, start.Context, fmt.Sprintf("invalid label selector: %v", err))
+			c.updateControl(ctx, handler, Control{Status: fmt.Sprintf("Error: %v", err)})
+			return fmt.Errorf("invalid label selector: %v", err)
 		}
 		labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 		if err != nil {
-			return c.handleError(handler, start.Context, fmt.Sprintf("invalid label selector: %v", err))
+			c.updateControl(ctx, handler, Control{Status: fmt.Sprintf("Error: %v", err)})
+			return fmt.Errorf("invalid label selector: %v", err)
 		}
 		listOpts.LabelSelector = labelSelector
 	}
+
+	// Create done channel
+	done := make(chan struct{})
+	c.setWatchDone(done)
+	defer func() {
+		c.setWatchDone(nil)
+		close(done)
+	}()
+
+	// Create watch context
+	watchCtx, watchCancel := context.WithCancel(ctx)
+	defer watchCancel()
+
+	c.setCancelFunc(watchCancel)
+	defer c.setCancelFunc(nil)
 
 	// Create pod list for watching
 	podList := &corev1.PodList{}
 
 	// Start the watch
-	watcher, err := k8sClient.Watch(ctx, podList, listOpts)
+	watcher, err := k8sClient.Watch(watchCtx, podList, listOpts)
 	if err != nil {
-		return c.handleError(handler, start.Context, fmt.Sprintf("failed to start watch: %v", err))
+		c.updateControl(ctx, handler, Control{Status: fmt.Sprintf("Error: %v", err)})
+		return fmt.Errorf("failed to start watch: %v", err)
 	}
-	defer watcher.Stop()
+
+	// Start watch loop in goroutine
+	go c.watchLoop(watchCtx, handler, start, watcher, podList, listOpts)
+
+	// Update control to show watching status
+	c.updateControl(ctx, handler, Control{
+		Status:        "Watching",
+		Namespace:     start.Namespace,
+		LabelSelector: start.LabelSelector,
+	})
 
 	log.Info().Str("namespace", start.Namespace).Str("labelSelector", start.LabelSelector).Msg("Pod watcher started")
 
-	// Process watch events
+	// Block until context done
+	<-watchCtx.Done()
+
+	watcher.Stop()
+	c.updateControl(ctx, handler, Control{Status: "Stopped"})
+
+	log.Info().Msg("Pod watcher stopped")
+	return watchCtx.Err()
+}
+
+func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start Start, watcher watch.Interface, podList *corev1.PodList, listOpts *client.ListOptions) {
+	c.k8sClientLock.RLock()
+	k8sClient := c.k8sClient
+	c.k8sClientLock.RUnlock()
+
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug().Msg("Pod watch context cancelled")
-			return ctx.Err()
+			return
 		case watchEvent, ok := <-watcher.ResultChan():
 			if !ok {
 				log.Debug().Msg("Pod watch channel closed, restarting...")
 				time.Sleep(time.Second)
+				var err error
 				watcher, err = k8sClient.Watch(ctx, podList, listOpts)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to restart pod watch")
-					return err
+					return
 				}
 				continue
 			}
@@ -368,6 +456,14 @@ func (c *Component) isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
+func (c *Component) updateControl(ctx context.Context, handler module.Handler, ctrl Control) {
+	c.controlLock.Lock()
+	c.control = ctrl
+	c.controlLock.Unlock()
+
+	_ = handler(ctx, v1alpha1.ControlPort, ctrl)
+}
+
 func (c *Component) handleError(handler module.Handler, userCtx Context, errMsg string) any {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
@@ -387,7 +483,16 @@ func (c *Component) Ports() []module.Port {
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
 
+	c.controlLock.RLock()
+	control := c.control
+	c.controlLock.RUnlock()
+
 	ports := []module.Port{
+		{
+			Name:          v1alpha1.ControlPort,
+			Label:         "Control",
+			Configuration: control,
+		},
 		{
 			Name:     v1alpha1.ClientPort,
 			Label:    "Client",
