@@ -11,6 +11,7 @@ import (
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -136,8 +137,11 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		listOpts = append(listOpts, client.InNamespace(req.Namespace))
 	}
 	if req.LabelSelector != "" {
-		selector := parseSelector(req.LabelSelector)
-		listOpts = append(listOpts, selector)
+		selector, err := labels.Parse(req.LabelSelector)
+		if err != nil {
+			return c.handleError(ctx, handler, req, fmt.Sprintf("invalid label selector: %v", err))
+		}
+		listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: selector})
 	}
 
 	// Initialize to empty slice (not nil) so it serializes as [] not null
@@ -240,64 +244,6 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 		})
 	}
 	return errors.New(errMsg)
-}
-
-func parseSelector(selector string) client.MatchingLabels {
-	// Simple key=value parser for common cases
-	labels := make(map[string]string)
-	if selector == "" {
-		return labels
-	}
-
-	// Handle simple key=value pairs
-	pairs := splitSelector(selector)
-	for _, pair := range pairs {
-		for i := 0; i < len(pair); i++ {
-			if pair[i] == '=' {
-				key := pair[:i]
-				value := pair[i+1:]
-				// Handle != by skipping (not supported in simple mode)
-				if len(key) > 0 && key[len(key)-1] == '!' {
-					continue
-				}
-				labels[key] = value
-				break
-			}
-		}
-	}
-	return labels
-}
-
-func splitSelector(s string) []string {
-	var result []string
-	var current string
-	inParens := 0
-
-	for _, c := range s {
-		switch c {
-		case '(':
-			inParens++
-			current += string(c)
-		case ')':
-			inParens--
-			current += string(c)
-		case ',':
-			if inParens == 0 {
-				if current != "" {
-					result = append(result, current)
-				}
-				current = ""
-			} else {
-				current += string(c)
-			}
-		default:
-			current += string(c)
-		}
-	}
-	if current != "" {
-		result = append(result, current)
-	}
-	return result
 }
 
 func formatAge(t time.Time) string {
