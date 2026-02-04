@@ -15,10 +15,11 @@ import (
   "github.com/tiny-systems/module/registry"
 
   // Import components to register them
+  _ "github.com/tiny-systems/kubernetes-module/components/eventwatcher"
   _ "github.com/tiny-systems/kubernetes-module/components/podlogs"
   _ "github.com/tiny-systems/kubernetes-module/components/podstatus"
+  _ "github.com/tiny-systems/kubernetes-module/components/podwatcher"
   _ "github.com/tiny-systems/kubernetes-module/components/resourcelist"
-  _ "github.com/tiny-systems/kubernetes-module/components/resourcewatcher"
   _ "github.com/tiny-systems/kubernetes-module/components/workloadrestart"
 )
 
