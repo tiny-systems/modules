@@ -29,6 +29,7 @@ import (
   _ "github.com/tiny-systems/kubernetes-module/components/servicelist"
   _ "github.com/tiny-systems/kubernetes-module/components/serviceupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/statefulsetlist"
+  _ "github.com/tiny-systems/kubernetes-module/components/workloadlist"
   _ "github.com/tiny-systems/kubernetes-module/components/workloadrestart"
 )
 
