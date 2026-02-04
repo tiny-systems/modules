@@ -33,9 +33,9 @@ type Settings struct {
 // Request is the input to list workloads
 type Request struct {
 	Context       Context  `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Kinds         []string `json:"kinds,omitempty" title:"Kinds" description:"Resource kinds to list: Deployment, StatefulSet, DaemonSet (empty = all)"`
-	Namespace     string   `json:"namespace,omitempty" title:"Namespace" description:"Filter to specific namespace (empty = all namespaces)"`
-	LabelSelector string   `json:"labelSelector,omitempty" title:"Label Selector" description:"Filter by label expression (e.g., app=myapp, environment in (prod,staging))"`
+	Kinds         []string `json:"kinds,omitempty" title:"Kinds" description:"Optional. Resource kinds to list: Deployment, StatefulSet, DaemonSet. Leave empty to list all three."`
+	Namespace     string   `json:"namespace,omitempty" title:"Namespace" description:"Optional. Filter to specific namespace. Leave empty to list across all namespaces."`
+	LabelSelector string   `json:"labelSelector,omitempty" title:"Label Selector" description:"Optional. Filter by label expression. Supports: key=value, key!=value, key in (a,b), key notin (a,b), key, !key"`
 }
 
 // ResourceInfo represents a workload resource
