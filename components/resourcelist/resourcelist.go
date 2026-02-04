@@ -38,13 +38,13 @@ type Request struct {
 
 // Result is the output with resource list
 type Result struct {
-	Context Context `json:"context,omitempty" configurable:"true" title:"Context"`
+	Context Context `json:"context,omitempty" title:"Context"`
 	k8s.ResourceList
 }
 
 // Error output
 type Error struct {
-	Context Context `json:"context,omitempty" configurable:"true" title:"Context"`
+	Context Context `json:"context,omitempty" title:"Context"`
 	Error   string  `json:"error" title:"Error"`
 }
 

@@ -30,6 +30,9 @@ const (
 // EventType represents the type of watch event
 type EventType string
 
+// Context type alias for schema generation
+type Context any
+
 const (
 	EventAdded    EventType = "ADDED"
 	EventModified EventType = "MODIFIED"
@@ -46,7 +49,7 @@ type Settings struct {
 
 // Start initiates watching with the given configuration
 type Start struct {
-	Context any `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through to events"`
+	Context Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through to events"`
 
 	// Resource identification
 	APIVersion string `json:"apiVersion" required:"true" title:"API Version" description:"API version of the resource (e.g., v1, apps/v1, networking.k8s.io/v1)"`
@@ -69,7 +72,7 @@ type Start struct {
 
 // Event is emitted for each resource change
 type Event struct {
-	Context any `json:"context,omitempty" configurable:"true" title:"Context" description:"Context passed from start message"`
+	Context Context `json:"context,omitempty" title:"Context" description:"Context passed from start message"`
 
 	// Event metadata
 	EventType EventType `json:"eventType" title:"Event Type" description:"Type of event: ADDED, MODIFIED, DELETED"`
@@ -100,8 +103,8 @@ type Status struct {
 
 // Error output for error port
 type Error struct {
-	Context any    `json:"context,omitempty" configurable:"true" title:"Context"`
-	Error   string `json:"error" title:"Error" description:"Error message"`
+	Context Context `json:"context,omitempty" title:"Context"`
+	Error   string  `json:"error" title:"Error" description:"Error message"`
 }
 
 // Control provides dashboard info for the component
