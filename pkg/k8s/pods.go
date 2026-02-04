@@ -83,25 +83,14 @@ func GetPodStatus(ctx context.Context, k8sClient client.Client, namespace, label
 	return status, nil
 }
 
-// GetPodLogs returns logs from a pod
+// GetPodLogs returns logs from a pod by exact name
 func GetPodLogs(ctx context.Context, k8sClient client.Client, restClient RESTClient, namespace, podName, container string, lines int64) (*PodLogs, error) {
 	if lines <= 0 {
 		lines = 50
 	}
 
-	// If podName looks like a label selector or app name, find the first pod
-	if !strings.Contains(podName, "-") || len(podName) < 10 {
-		pods, err := listPods(ctx, k8sClient, namespace, fmt.Sprintf("app=%s", podName))
-		if err != nil {
-			return nil, fmt.Errorf("failed to find pods for app %s: %w", podName, err)
-		}
-		if len(pods) == 0 {
-			return nil, fmt.Errorf("no pods found for app=%s", podName)
-		}
-		podName = pods[0].Name
-		if container == "" && len(pods[0].Spec.Containers) > 0 {
-			container = pods[0].Spec.Containers[0].Name
-		}
+	if podName == "" {
+		return nil, fmt.Errorf("pod name is required")
 	}
 
 	// Get logs using REST client
@@ -125,22 +114,25 @@ func GetPodLogs(ctx context.Context, k8sClient client.Client, restClient RESTCli
 	}, nil
 }
 
-// FindPod finds a single pod by name or app label
-func FindPod(ctx context.Context, k8sClient client.Client, namespace, nameOrApp string) (*corev1.Pod, error) {
-	// Try direct lookup first
-	pod := &corev1.Pod{}
-	err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: nameOrApp}, pod)
-	if err == nil {
-		return pod, nil
-	}
 
-	// Try by app label
-	pods, err := listPods(ctx, k8sClient, namespace, fmt.Sprintf("app=%s", nameOrApp))
+// FindPod finds a single pod by exact name
+func FindPod(ctx context.Context, k8sClient client.Client, namespace, name string) (*corev1.Pod, error) {
+	pod := &corev1.Pod{}
+	err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pod)
+	if err != nil {
+		return nil, fmt.Errorf("pod not found: %s", name)
+	}
+	return pod, nil
+}
+
+// FindPodBySelector finds the first pod matching a label selector
+func FindPodBySelector(ctx context.Context, k8sClient client.Client, namespace, labelSelector string) (*corev1.Pod, error) {
+	pods, err := listPods(ctx, k8sClient, namespace, labelSelector)
 	if err != nil {
 		return nil, err
 	}
 	if len(pods) == 0 {
-		return nil, fmt.Errorf("pod not found: %s", nameOrApp)
+		return nil, fmt.Errorf("no pods found matching %s", labelSelector)
 	}
 	return &pods[0], nil
 }

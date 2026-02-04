@@ -34,7 +34,7 @@ type Settings struct {
 type Request struct {
 	Context   Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
 	Namespace string  `json:"namespace" required:"true" title:"Namespace" description:"Kubernetes namespace"`
-	Pod       string  `json:"pod" required:"true" title:"Pod" description:"Pod name or app label"`
+	Pod       string  `json:"pod" required:"true" title:"Pod" description:"Exact pod name"`
 	Container string  `json:"container,omitempty" title:"Container" description:"Container name (optional, defaults to first container)"`
 	Lines     int64   `json:"lines,omitempty" title:"Lines" description:"Number of log lines to return"`
 }
@@ -72,8 +72,8 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	return module.ComponentInfo{
 		Name:        ComponentName,
 		Description: "Pod Logs",
-		Info:        "Get logs from a pod. Can look up pods by name or app label.",
-		Tags:        []string{"Kubernetes", "ChatOps", "Pods", "Logs"},
+		Info:        "Get logs from a specific pod by exact name. Use pod_list to find pods first if needed.",
+		Tags:        []string{"Kubernetes", "Pods", "Logs"},
 	}
 }
 
@@ -131,7 +131,6 @@ func (c *Component) initLogsClient() {
 func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
-	defaultNS := c.k8sNamespace
 	c.k8sClientLock.RUnlock()
 
 	c.logsClientLock.RLock()
@@ -146,11 +145,6 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		return c.handleError(ctx, handler, req, "Logs client not available")
 	}
 
-	namespace := req.Namespace
-	if namespace == "" {
-		namespace = defaultNS
-	}
-
 	lines := req.Lines
 	if lines <= 0 {
 		c.settingsLock.RLock()
@@ -158,7 +152,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		c.settingsLock.RUnlock()
 	}
 
-	podLogs, err := k8s.GetPodLogs(ctx, k8sClient, logsClient, namespace, req.Pod, req.Container, lines)
+	podLogs, err := k8s.GetPodLogs(ctx, k8sClient, logsClient, req.Namespace, req.Pod, req.Container, lines)
 	if err != nil {
 		return c.handleError(ctx, handler, req, err.Error())
 	}
