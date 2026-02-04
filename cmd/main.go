@@ -17,12 +17,16 @@ import (
   // Import components to register them
   _ "github.com/tiny-systems/kubernetes-module/components/daemonsetlist"
   _ "github.com/tiny-systems/kubernetes-module/components/deploymentlist"
+  _ "github.com/tiny-systems/kubernetes-module/components/deploymentscale"
   _ "github.com/tiny-systems/kubernetes-module/components/eventwatcher"
+  _ "github.com/tiny-systems/kubernetes-module/components/poddelete"
   _ "github.com/tiny-systems/kubernetes-module/components/podlist"
   _ "github.com/tiny-systems/kubernetes-module/components/podlogs"
   _ "github.com/tiny-systems/kubernetes-module/components/podstatus"
+  _ "github.com/tiny-systems/kubernetes-module/components/podupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/podwatcher"
   _ "github.com/tiny-systems/kubernetes-module/components/servicelist"
+  _ "github.com/tiny-systems/kubernetes-module/components/serviceupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/statefulsetlist"
   _ "github.com/tiny-systems/kubernetes-module/components/workloadrestart"
 )
