@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
-	"github.com/tiny-systems/module/pkg/utils"
 	"github.com/tiny-systems/module/registry"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -167,10 +166,6 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		in, ok := msg.(Start)
 		if !ok {
 			return fmt.Errorf("invalid start message")
-		}
-
-		if !utils.IsLeader(ctx) {
-			return nil
 		}
 
 		// If already running, wait for it to stop
