@@ -50,10 +50,16 @@ type Start struct {
 	Namespace string `json:"namespace" required:"true" title:"Namespace" description:"Namespace to watch"`
 
 	// Filtering
-	FieldSelector string `json:"fieldSelector,omitempty" title:"Field Selector" description:"Filter events (e.g., type=Warning, involvedObject.kind=Pod)"`
+	FieldSelector    string   `json:"fieldSelector,omitempty" title:"Field Selector" description:"Filter events (e.g., type=Warning, involvedObject.kind=Pod)"`
+	IgnoreNamespaces []string `json:"ignoreNamespaces,omitempty" title:"Ignore Namespaces" description:"Skip events from these namespaces (e.g., kube-system)"`
 
 	// Event type filter
-	WarningsOnly bool `json:"warningsOnly,omitempty" title:"Warnings Only" description:"Only emit Warning events (not Normal)"`
+	WarningsOnly bool     `json:"warningsOnly,omitempty" title:"Warnings Only" description:"Only emit Warning events (not Normal)"`
+	WatchActions []string `json:"watchActions,omitempty" title:"Watch Actions" description:"Only emit these actions (ADDED, MODIFIED, DELETED). Empty means all."`
+	Reasons      []string `json:"reasons,omitempty" title:"Reasons" description:"Only emit events with these reasons (e.g., Failed, BackOff, Unhealthy). Empty means all."`
+
+	// Deduplication
+	CooldownSeconds int `json:"cooldownSeconds,omitempty" title:"Cooldown Seconds" description:"Don't emit same event more than once within this period (0 = no cooldown)"`
 }
 
 // InvolvedObject identifies what the event is about
@@ -107,6 +113,10 @@ type Component struct {
 
 	watchDone     chan struct{}
 	watchDoneLock sync.Mutex
+
+	// cooldown tracking: event key -> last emit time
+	lastEmitTime     map[string]time.Time
+	lastEmitTimeLock sync.RWMutex
 }
 
 func (c *Component) Instance() module.Component {
@@ -401,11 +411,7 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 				continue
 			}
 
-			// Filter warnings if requested
-			if start.WarningsOnly && k8sEvent.Type != "Warning" {
-				continue
-			}
-
+			// Determine watch action first (needed for filtering)
 			var watchAction string
 			switch watchEvent.Type {
 			case watch.Added:
@@ -416,6 +422,77 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 				watchAction = "DELETED"
 			default:
 				continue
+			}
+
+			// Filter: ignore namespaces
+			if len(start.IgnoreNamespaces) > 0 {
+				skip := false
+				for _, ns := range start.IgnoreNamespaces {
+					if k8sEvent.InvolvedObject.Namespace == ns {
+						skip = true
+						break
+					}
+				}
+				if skip {
+					continue
+				}
+			}
+
+			// Filter: watch actions
+			if len(start.WatchActions) > 0 {
+				allowed := false
+				for _, action := range start.WatchActions {
+					if action == watchAction {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					continue
+				}
+			}
+
+			// Filter: warnings only
+			if start.WarningsOnly && k8sEvent.Type != "Warning" {
+				continue
+			}
+
+			// Filter: specific reasons
+			if len(start.Reasons) > 0 {
+				allowed := false
+				for _, reason := range start.Reasons {
+					if k8sEvent.Reason == reason {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					continue
+				}
+			}
+
+			// Filter: cooldown
+			if start.CooldownSeconds > 0 {
+				// Use event UID as key for deduplication
+				eventKey := string(k8sEvent.UID)
+				if eventKey == "" {
+					eventKey = k8sEvent.Namespace + "/" + k8sEvent.Name
+				}
+
+				c.lastEmitTimeLock.RLock()
+				lastEmit, exists := c.lastEmitTime[eventKey]
+				c.lastEmitTimeLock.RUnlock()
+
+				if exists && time.Since(lastEmit) < time.Duration(start.CooldownSeconds)*time.Second {
+					continue
+				}
+
+				c.lastEmitTimeLock.Lock()
+				if c.lastEmitTime == nil {
+					c.lastEmitTime = make(map[string]time.Time)
+				}
+				c.lastEmitTime[eventKey] = time.Now()
+				c.lastEmitTimeLock.Unlock()
 			}
 
 			c.emitEvent(ctx, handler, start.Context, watchAction, k8sEvent)

@@ -52,10 +52,16 @@ type Start struct {
 	Namespace string `json:"namespace" required:"true" title:"Namespace" description:"Namespace to watch"`
 
 	// Filtering
-	LabelSelector string `json:"labelSelector,omitempty" title:"Label Selector" description:"Filter by labels (e.g., app=nginx,env=prod)"`
+	LabelSelector    string   `json:"labelSelector,omitempty" title:"Label Selector" description:"Filter by labels (e.g., app=nginx,env=prod)"`
+	IgnoreNamespaces []string `json:"ignoreNamespaces,omitempty" title:"Ignore Namespaces" description:"Skip events from these namespaces (e.g., kube-system, kube-public)"`
 
-	// Options
-	ProblemsOnly bool `json:"problemsOnly,omitempty" title:"Problems Only" description:"Only emit events for pods with issues (not Running/Succeeded)"`
+	// Event filters
+	ProblemsOnly    bool     `json:"problemsOnly,omitempty" title:"Problems Only" description:"Only emit events for pods with issues (not Running/Succeeded)"`
+	WatchActions    []string `json:"watchActions,omitempty" title:"Watch Actions" description:"Only emit these actions (ADDED, MODIFIED, DELETED). Empty means all."`
+	MinRestartCount int32    `json:"minRestartCount,omitempty" title:"Min Restart Count" description:"Only emit if any container has at least this many restarts"`
+
+	// Deduplication
+	CooldownSeconds int `json:"cooldownSeconds,omitempty" title:"Cooldown Seconds" description:"Don't emit same pod more than once within this period (0 = no cooldown)"`
 }
 
 // ContainerState represents the state of a container
@@ -129,6 +135,10 @@ type Component struct {
 	// watchDone is closed when the watcher stops, allowing waiters to unblock
 	watchDone     chan struct{}
 	watchDoneLock sync.Mutex
+
+	// cooldown tracking: pod key -> last emit time
+	lastEmitTime     map[string]time.Time
+	lastEmitTimeLock sync.RWMutex
 }
 
 func (c *Component) Instance() module.Component {
@@ -414,13 +424,7 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 				continue
 			}
 
-			hasProblem, problemReason := c.detectProblem(pod)
-
-			// Filter to problems only if requested
-			if start.ProblemsOnly && !hasProblem {
-				continue
-			}
-
+			// Determine watch action first (needed for filtering)
 			var watchAction string
 			switch watchEvent.Type {
 			case watch.Added:
@@ -431,6 +435,73 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 				watchAction = "DELETED"
 			default:
 				continue
+			}
+
+			// Filter: ignore namespaces
+			if len(start.IgnoreNamespaces) > 0 {
+				skip := false
+				for _, ns := range start.IgnoreNamespaces {
+					if pod.Namespace == ns {
+						skip = true
+						break
+					}
+				}
+				if skip {
+					continue
+				}
+			}
+
+			// Filter: watch actions
+			if len(start.WatchActions) > 0 {
+				allowed := false
+				for _, action := range start.WatchActions {
+					if action == watchAction {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					continue
+				}
+			}
+
+			hasProblem, problemReason := c.detectProblem(pod)
+
+			// Filter: problems only
+			if start.ProblemsOnly && !hasProblem {
+				continue
+			}
+
+			// Filter: min restart count
+			if start.MinRestartCount > 0 {
+				maxRestarts := int32(0)
+				for _, cs := range pod.Status.ContainerStatuses {
+					if cs.RestartCount > maxRestarts {
+						maxRestarts = cs.RestartCount
+					}
+				}
+				if maxRestarts < start.MinRestartCount {
+					continue
+				}
+			}
+
+			// Filter: cooldown
+			if start.CooldownSeconds > 0 {
+				podKey := pod.Namespace + "/" + pod.Name
+				c.lastEmitTimeLock.RLock()
+				lastEmit, exists := c.lastEmitTime[podKey]
+				c.lastEmitTimeLock.RUnlock()
+
+				if exists && time.Since(lastEmit) < time.Duration(start.CooldownSeconds)*time.Second {
+					continue
+				}
+
+				c.lastEmitTimeLock.Lock()
+				if c.lastEmitTime == nil {
+					c.lastEmitTime = make(map[string]time.Time)
+				}
+				c.lastEmitTime[podKey] = time.Now()
+				c.lastEmitTimeLock.Unlock()
 			}
 
 			c.emitEvent(ctx, handler, start.Context, watchAction, pod, hasProblem, problemReason)
