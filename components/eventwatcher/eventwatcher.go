@@ -304,9 +304,8 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 		close(done)
 	}()
 
-	// Create watch context - use Background to avoid inheriting caller's deadline
-	// The watch is long-running and shouldn't be cancelled when the start message times out
-	watchCtx, watchCancel := context.WithCancel(context.Background())
+	// Create watch context from incoming context
+	watchCtx, watchCancel := context.WithCancel(ctx)
 	defer watchCancel()
 
 	c.setCancelFunc(watchCancel)
