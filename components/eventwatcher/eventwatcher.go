@@ -304,8 +304,9 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 		close(done)
 	}()
 
-	// Create watch context from incoming context
-	watchCtx, watchCancel := context.WithCancel(ctx)
+	// Use Background context - watch is long-running and shouldn't inherit caller's deadline
+	// The gRPC request context has a timeout that would cancel the watcher prematurely
+	watchCtx, watchCancel := context.WithCancel(context.Background())
 	defer watchCancel()
 
 	c.setCancelFunc(watchCancel)
