@@ -150,6 +150,13 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		return nil
 
 	case StartPort:
+		// Handle nil message - stop watcher (like http-server)
+		if msg == nil {
+			log.Info().Msg("event_watch: StartPort received nil (state deleted), stopping")
+			c.clearMetadata(handler)
+			return c.stop()
+		}
+
 		in, ok := msg.(Start)
 		if !ok {
 			return fmt.Errorf("invalid start message")
@@ -255,6 +262,30 @@ func (c *Component) isRunning() bool {
 	c.cancelFuncLock.Lock()
 	defer c.cancelFuncLock.Unlock()
 	return c.cancelFunc != nil
+}
+
+func (c *Component) stop() error {
+	c.cancelFuncLock.Lock()
+	defer c.cancelFuncLock.Unlock()
+
+	if c.cancelFunc == nil {
+		return nil
+	}
+
+	log.Info().Msg("event_watch: stopping watcher")
+	c.cancelFunc()
+	return nil
+}
+
+func (c *Component) clearMetadata(handler module.Handler) {
+	_ = handler(context.Background(), v1alpha1.ReconcilePort, func(n *v1alpha1.TinyNode) error {
+		if n.Status.Metadata == nil {
+			return nil
+		}
+		delete(n.Status.Metadata, metadataKeyRunning)
+		delete(n.Status.Metadata, metadataKeyConfig)
+		return nil
+	})
 }
 
 func (c *Component) updateControl(ctx context.Context, handler module.Handler, ctrl Control) {
