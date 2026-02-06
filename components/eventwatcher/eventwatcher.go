@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/rs/zerolog/log"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
@@ -23,9 +22,6 @@ const (
 	StartPort = "start"
 	EventPort = "event"
 	ErrorPort = "error"
-
-	metadataKeyRunning = "eventwatch-running"
-	metadataKeyConfig  = "eventwatch-config"
 )
 
 // Control shows the current watcher status
@@ -100,8 +96,6 @@ type Component struct {
 	settings     Settings
 	settingsLock sync.RWMutex
 
-	startSettings Start
-
 	k8sClient     client.WithWatch
 	k8sClientLock sync.RWMutex
 
@@ -147,7 +141,7 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		return nil
 
 	case v1alpha1.ReconcilePort:
-		return c.handleReconcile(ctx, handler, msg)
+		return nil
 
 	case v1alpha1.SettingsPort:
 		in, ok := msg.(Settings)
@@ -160,10 +154,8 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		return nil
 
 	case StartPort:
-		// Handle nil message - stop watcher (like http-server)
 		if msg == nil {
-			log.Info().Msg("event_watch: StartPort received nil (state deleted), stopping")
-			c.clearMetadata(handler)
+			log.Info().Msg("event_watch: StartPort received nil, stopping")
 			return c.stop()
 		}
 
@@ -172,9 +164,6 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 			return fmt.Errorf("invalid start message")
 		}
 
-		c.startSettings = in
-		c.persistConfig(handler)
-
 		if done := c.getWatchDone(); done != nil {
 			log.Info().Msg("event_watch: already running, waiting for watcher to stop")
 			select {
@@ -182,87 +171,14 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 				return nil
 			case <-ctx.Done():
 				c.stop()
-				c.clearMetadata(handler)
 				return nil
 			}
 		}
 
-		err := c.runWatch(ctx, handler, in)
-		if ctx.Err() != nil {
-			c.clearMetadata(handler)
-		}
-		return err
+		return c.runWatch(ctx, handler, in)
 	}
 
 	return fmt.Errorf("unknown port: %s", port)
-}
-
-func (c *Component) handleReconcile(ctx context.Context, handler module.Handler, msg any) error {
-	node, ok := msg.(v1alpha1.TinyNode)
-	if !ok {
-		return nil
-	}
-
-	if node.Status.Metadata == nil {
-		if c.isRunning() {
-			c.stop()
-		}
-		return nil
-	}
-
-	// Check if we should be running
-	if _, running := node.Status.Metadata[metadataKeyRunning]; !running {
-		if c.isRunning() {
-			c.stop()
-		}
-		return nil
-	}
-
-	// Already running, skip
-	if c.isRunning() {
-		return nil
-	}
-
-	// Restore config from metadata
-	configStr, ok := node.Status.Metadata[metadataKeyConfig]
-	if !ok {
-		return nil
-	}
-
-	var cfg Start
-	if err := json.Unmarshal([]byte(configStr), &cfg); err != nil {
-		log.Error().Err(err).Msg("event_watch: failed to unmarshal config from metadata")
-		return nil
-	}
-
-	c.startSettings = cfg
-	log.Info().Interface("config", cfg).Msg("event_watch: restoring from metadata")
-
-	go c.startFromMetadata(handler)
-	return nil
-}
-
-func (c *Component) startFromMetadata(handler module.Handler) {
-	if c.isRunning() {
-		return
-	}
-
-	log.Info().Msg("event_watch: starting watcher from metadata")
-	if err := c.runWatch(context.Background(), handler, c.startSettings); err != nil {
-		log.Error().Err(err).Msg("event_watch: watcher stopped after metadata restoration")
-	}
-}
-
-func (c *Component) persistConfig(handler module.Handler) {
-	configBytes, _ := json.Marshal(c.startSettings)
-	_ = handler(context.Background(), v1alpha1.ReconcilePort, func(n *v1alpha1.TinyNode) error {
-		if n.Status.Metadata == nil {
-			n.Status.Metadata = make(map[string]string)
-		}
-		n.Status.Metadata[metadataKeyRunning] = "true"
-		n.Status.Metadata[metadataKeyConfig] = string(configBytes)
-		return nil
-	})
 }
 
 func (c *Component) getWatchDone() chan struct{} {
@@ -300,17 +216,6 @@ func (c *Component) stop() error {
 	log.Info().Msg("event_watch: stopping watcher")
 	c.cancelFunc()
 	return nil
-}
-
-func (c *Component) clearMetadata(handler module.Handler) {
-	_ = handler(context.Background(), v1alpha1.ReconcilePort, func(n *v1alpha1.TinyNode) error {
-		if n.Status.Metadata == nil {
-			return nil
-		}
-		delete(n.Status.Metadata, metadataKeyRunning)
-		delete(n.Status.Metadata, metadataKeyConfig)
-		return nil
-	})
 }
 
 func (c *Component) updateControl(ctx context.Context, handler module.Handler, ctrl Control) {
@@ -365,8 +270,6 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 	defer watchCancel()
 
 	// Bridge: cancel watcher when parent context is done.
-	// This lets Handle() return after gRPC timeout. The watcher will be
-	// restored from metadata by reconcile using context.Background().
 	go func() {
 		select {
 		case <-ctx.Done():
