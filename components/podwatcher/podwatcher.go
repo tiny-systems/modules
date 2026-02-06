@@ -207,11 +207,18 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 				return nil
 			case <-ctx.Done():
 				log.Info().Msg("pod_watch: context cancelled while waiting for watcher to stop")
+				c.clearMetadata(handler)
 				return ctx.Err()
 			}
 		}
 
-		return c.runWatch(ctx, handler, in)
+		err := c.runWatch(ctx, handler, in)
+		// If upstream cancelled (e.g. ticker stopped), clear metadata
+		// so reconciliation doesn't restart the watcher
+		if ctx.Err() != nil {
+			c.clearMetadata(handler)
+		}
+		return err
 	}
 
 	return fmt.Errorf("unknown port: %s", port)
