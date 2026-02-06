@@ -199,24 +199,24 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		c.startSettings = in
 		c.persistConfig(handler)
 
-		// If already running, just acknowledge — don't block Handle().
-		// Blocking here causes the gRPC request context to time out,
-		// which clears metadata and kills the watcher permanently.
-		if c.isRunning() {
-			log.Info().Msg("pod_watch: already running, acknowledging start")
-			return nil
+		// If already running, block to maintain blocking I/O semantics.
+		// When ctx is cancelled (gRPC timeout), return nil — do NOT clear metadata.
+		// Clearing metadata caused reconcile to permanently kill the watcher.
+		if done := c.getWatchDone(); done != nil {
+			log.Info().Msg("pod_watch: already running, waiting for watcher to stop")
+			select {
+			case <-done:
+				return nil
+			case <-ctx.Done():
+				log.Info().Msg("pod_watch: context cancelled while waiting, watcher continues")
+				return nil
+			}
 		}
 
-		// Start watcher asynchronously — Handle() must not block on long-running I/O.
-		// The gRPC request context has a deadline that would kill the watcher.
-		// Watcher lifetime is controlled via c.stop() and reconcile metadata.
-		go func() {
-			if err := c.runWatch(context.Background(), handler, in); err != nil {
-				log.Error().Err(err).Msg("pod_watch: watcher stopped with error")
-			}
-		}()
-
-		return nil
+		err := c.runWatch(ctx, handler, in)
+		// Do NOT clear metadata on ctx cancellation — the watcher will be
+		// restored from metadata by reconcile with context.Background().
+		return err
 	}
 
 	return fmt.Errorf("unknown port: %s", port)
@@ -376,11 +376,20 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 		close(done)
 	}()
 
-	// Use Background context - watch is long-running and shouldn't inherit caller's deadline.
-	// No bridge from parent ctx: watcher lifetime is controlled via c.stop() and reconcile.
-	// Bridging parent ctx caused the watcher to die on gRPC request timeout.
+	// Use Background context - watch is long-running and shouldn't inherit caller's deadline
 	watchCtx, watchCancel := context.WithCancel(context.Background())
 	defer watchCancel()
+
+	// Bridge: cancel watcher when parent context is done.
+	// This lets Handle() return after gRPC timeout. The watcher will be
+	// restored from metadata by reconcile using context.Background().
+	go func() {
+		select {
+		case <-ctx.Done():
+			watchCancel()
+		case <-watchCtx.Done():
+		}
+	}()
 
 	c.setCancelFunc(watchCancel)
 	defer c.setCancelFunc(nil)
