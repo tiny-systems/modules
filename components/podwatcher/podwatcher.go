@@ -199,21 +199,22 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		c.startSettings = in
 		c.persistConfig(handler)
 
-		// If already running, block to maintain blocking I/O semantics.
-		// When ctx is cancelled (gRPC timeout), return nil — do NOT clear metadata.
-		// Clearing metadata caused reconcile to permanently kill the watcher.
 		if done := c.getWatchDone(); done != nil {
 			log.Info().Msg("pod_watch: already running, waiting for watcher to stop")
 			select {
 			case <-done:
 				return nil
 			case <-ctx.Done():
-				log.Info().Msg("pod_watch: context cancelled while waiting, watcher continues")
+				c.stop()
+				c.clearMetadata(handler)
 				return nil
 			}
 		}
 
 		err := c.runWatch(ctx, handler, in)
+		if ctx.Err() != nil {
+			c.clearMetadata(handler)
+		}
 		return err
 	}
 
