@@ -204,11 +204,17 @@ func (c *Component) handleReconcile(ctx context.Context, handler module.Handler,
 	}
 
 	if node.Status.Metadata == nil {
+		if c.isRunning() {
+			c.stop()
+		}
 		return nil
 	}
 
 	// Check if we should be running
 	if _, running := node.Status.Metadata[metadataKeyRunning]; !running {
+		if c.isRunning() {
+			c.stop()
+		}
 		return nil
 	}
 
