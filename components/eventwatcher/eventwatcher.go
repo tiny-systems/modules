@@ -178,8 +178,13 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		// If already running, wait for it to stop
 		if done := c.getWatchDone(); done != nil {
 			log.Info().Msg("event_watch: already running, waiting for watcher to stop")
-			<-done
-			return nil
+			select {
+			case <-done:
+				return nil
+			case <-ctx.Done():
+				log.Info().Msg("event_watch: context cancelled while waiting for watcher to stop")
+				return ctx.Err()
+			}
 		}
 
 		return c.runWatch(ctx, handler, in)
@@ -349,6 +354,15 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 	// The gRPC request context has a timeout that would cancel the watcher prematurely
 	watchCtx, watchCancel := context.WithCancel(context.Background())
 	defer watchCancel()
+
+	// Bridge: cancel watcher when parent context is done (e.g., upstream ticker stopped)
+	go func() {
+		select {
+		case <-ctx.Done():
+			watchCancel()
+		case <-watchCtx.Done():
+		}
+	}()
 
 	c.setCancelFunc(watchCancel)
 	defer c.setCancelFunc(nil)

@@ -31,9 +31,11 @@ const (
 
 // Control shows the current watcher status
 type Control struct {
-	Status        string `json:"status" title:"Status" readonly:"true"`
-	Namespace     string `json:"namespace,omitempty" title:"Namespace" readonly:"true"`
-	LabelSelector string `json:"labelSelector,omitempty" title:"Label Selector" readonly:"true"`
+	Status           string   `json:"status" title:"Status" readonly:"true"`
+	Namespace        string   `json:"namespace,omitempty" title:"Namespace" readonly:"true"`
+	LabelSelector    string   `json:"labelSelector,omitempty" title:"Label Selector" readonly:"true"`
+	IgnoreNamespaces []string `json:"ignoreNamespaces,omitempty" title:"Ignore Namespaces" readonly:"true"`
+	ProblemsOnly     bool     `json:"problemsOnly,omitempty" title:"Problems Only" readonly:"true"`
 }
 
 // Context type alias for schema generation
@@ -200,8 +202,13 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		// If already running, wait for it to stop
 		if done := c.getWatchDone(); done != nil {
 			log.Info().Msg("pod_watch: already running, waiting for watcher to stop")
-			<-done
-			return nil
+			select {
+			case <-done:
+				return nil
+			case <-ctx.Done():
+				log.Info().Msg("pod_watch: context cancelled while waiting for watcher to stop")
+				return ctx.Err()
+			}
 		}
 
 		return c.runWatch(ctx, handler, in)
@@ -369,6 +376,15 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 	watchCtx, watchCancel := context.WithCancel(context.Background())
 	defer watchCancel()
 
+	// Bridge: cancel watcher when parent context is done (e.g., upstream ticker stopped)
+	go func() {
+		select {
+		case <-ctx.Done():
+			watchCancel()
+		case <-watchCtx.Done():
+		}
+	}()
+
 	c.setCancelFunc(watchCancel)
 	defer c.setCancelFunc(nil)
 
@@ -387,9 +403,11 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 
 	// Update control to show watching status
 	c.updateControl(ctx, handler, Control{
-		Status:        "Watching",
-		Namespace:     start.Namespace,
-		LabelSelector: start.LabelSelector,
+		Status:           "Watching",
+		Namespace:        start.Namespace,
+		LabelSelector:    start.LabelSelector,
+		IgnoreNamespaces: start.IgnoreNamespaces,
+		ProblemsOnly:     start.ProblemsOnly,
 	})
 
 	log.Info().Str("namespace", start.Namespace).Str("labelSelector", start.LabelSelector).Msg("Pod watcher started")
