@@ -214,8 +214,9 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 		}
 
 		err := c.runWatch(ctx, handler, in)
-		// Do NOT clear metadata on ctx cancellation — the watcher will be
-		// restored from metadata by reconcile with context.Background().
+		if ctx.Err() != nil {
+			c.clearMetadata(handler)
+		}
 		return err
 	}
 
