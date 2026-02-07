@@ -434,6 +434,13 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 					c.lastEmitTime = make(map[string]time.Time)
 				}
 				c.lastEmitTime[podKey] = time.Now()
+				// Sweep stale entries to prevent unbounded map growth
+				cooldown := time.Duration(start.CooldownSeconds) * time.Second
+				for k, t := range c.lastEmitTime {
+					if time.Since(t) >= cooldown {
+						delete(c.lastEmitTime, k)
+					}
+				}
 				c.lastEmitTimeLock.Unlock()
 			}
 
@@ -661,6 +668,11 @@ func (c *Component) Ports() []module.Port {
 }
 
 var _ module.Component = (*Component)(nil)
+var _ module.Destroyer = (*Component)(nil)
+
+func (c *Component) OnDestroy(_ map[string]string) {
+	c.stop()
+}
 
 func init() {
 	registry.Register(&Component{})
