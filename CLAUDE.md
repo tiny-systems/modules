@@ -29,6 +29,10 @@ Exception: `_reconcile` port calls can ignore returns (internal system port).
 - No knowledge of other modules' metadata keys
 - Components should be flat in `components/` folder, no subfolders
 
+## CRITICAL: System Port Delivery Order
+
+System ports (`_settings`, `_control`, `_reconcile`) have NO guaranteed delivery order. On pod restart, `_reconcile` may fire before `_settings`. Components that persist state to metadata must use a guard flag to prevent reconcile from overwriting fresh values with stale metadata. See SDK CLAUDE.md for the full pattern.
+
 ## Context Pattern for Schema Generation
 
 Define a type alias for Context and use it in structs:
