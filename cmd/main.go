@@ -15,6 +15,7 @@ import (
   "github.com/tiny-systems/module/registry"
 
   // Import components to register them
+  _ "github.com/tiny-systems/kubernetes-module/components/configmappatch"
   _ "github.com/tiny-systems/kubernetes-module/components/daemonsetlist"
   _ "github.com/tiny-systems/kubernetes-module/components/deploymentlist"
   _ "github.com/tiny-systems/kubernetes-module/components/deploymentscale"
@@ -68,6 +69,12 @@ func main() {
 					APIGroups: []string{"apps"},
 					Resources: []string{"deployments"},
 					Verbs:     []string{"update", "patch"},
+				},
+				// ConfigMaps write - for configmap_patch component
+				{
+					APIGroups: []string{""},
+					Resources: []string{"configmaps"},
+					Verbs:     []string{"create", "update", "patch"},
 				},
 				// Pod logs access
 				{
