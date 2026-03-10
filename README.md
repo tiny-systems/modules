@@ -1,6 +1,6 @@
-# TinySystems Git Module
+# Tiny Systems Git Module
 
-Git integration components for TinySystems. This module is in early development.
+Git integration components for Tiny Systems. This module is in early development.
 
 ## Components
 
@@ -22,10 +22,10 @@ helm install git-module tinysystems/tinysystems-operator \
 go run cmd/main.go run --name=git-module --namespace=tinysystems --version=1.0.0
 ```
 
-## Part of TinySystems
+## Part of Tiny Systems
 
-This module is part of the [TinySystems](https://github.com/tiny-systems) platform -- a visual flow-based automation engine running on Kubernetes.
+This module is part of the [Tiny Systems](https://github.com/tiny-systems) platform -- a visual flow-based automation engine running on Kubernetes.
 
 ## License
 
-This module's source code is MIT-licensed. It depends on the [TinySystems Module SDK](https://github.com/tiny-systems/module) (BSL 1.1). See [LICENSE](LICENSE) for details.
+This module's source code is MIT-licensed. It depends on the [Tiny Systems Module SDK](https://github.com/tiny-systems/module) (BSL 1.1). See [LICENSE](LICENSE) for details.
