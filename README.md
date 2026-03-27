@@ -23,6 +23,7 @@ Kubernetes resource management components for cluster automation workflows.
 | Service Update | Update service spec or metadata |
 | ConfigMap Patch | Patch individual keys in a ConfigMap |
 | Event Watcher | Watch Kubernetes events in real time |
+| Custom Resource List | List any Kubernetes resource by API version and kind (built-in or CRDs) |
 
 ## Installation
 
