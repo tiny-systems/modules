@@ -15,6 +15,7 @@ import (
   "github.com/tiny-systems/module/registry"
 
   // Import components to register them
+  _ "github.com/tiny-systems/kubernetes-module/components/customresourcelist"
   _ "github.com/tiny-systems/kubernetes-module/components/configmappatch"
   _ "github.com/tiny-systems/kubernetes-module/components/daemonsetlist"
   _ "github.com/tiny-systems/kubernetes-module/components/deploymentlist"
