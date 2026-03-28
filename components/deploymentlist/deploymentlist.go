@@ -45,6 +45,12 @@ type DeploymentCondition struct {
 	Message string `json:"message,omitempty" title:"Message"`
 }
 
+// ContainerInfo contains container name and image
+type ContainerInfo struct {
+	Name  string `json:"name" title:"Name" description:"Container name"`
+	Image string `json:"image" title:"Image" description:"Container image"`
+}
+
 // DeploymentInfo contains typed deployment information
 type DeploymentInfo struct {
 	Name              string                `json:"name" title:"Name"`
@@ -55,6 +61,7 @@ type DeploymentInfo struct {
 	AvailableReplicas int32                 `json:"availableReplicas" title:"Available Replicas"`
 	UpdatedReplicas   int32                 `json:"updatedReplicas" title:"Updated Replicas"`
 	Image             string                `json:"image,omitempty" title:"Image" description:"First container image"`
+	Containers        []ContainerInfo       `json:"containers,omitempty" title:"Containers" description:"All containers with names and images"`
 	Strategy          string                `json:"strategy" title:"Strategy" description:"RollingUpdate or Recreate"`
 	Conditions        []DeploymentCondition `json:"conditions,omitempty" title:"Conditions"`
 	Age               string                `json:"age" title:"Age"`
@@ -172,8 +179,14 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 			Ready:             d.Status.ReadyReplicas == *d.Spec.Replicas,
 		}
 
-		if len(d.Spec.Template.Spec.Containers) > 0 {
-			info.Image = d.Spec.Template.Spec.Containers[0].Image
+		for _, c := range d.Spec.Template.Spec.Containers {
+			info.Containers = append(info.Containers, ContainerInfo{
+				Name:  c.Name,
+				Image: c.Image,
+			})
+		}
+		if len(info.Containers) > 0 {
+			info.Image = info.Containers[0].Image
 		}
 
 		for _, cond := range d.Status.Conditions {
@@ -246,6 +259,7 @@ func (c *Component) Ports() []module.Port {
 						AvailableReplicas: 3,
 						UpdatedReplicas:   3,
 						Image:             "myapp:v1.0.0",
+						Containers:        []ContainerInfo{{Name: "myapp-api", Image: "myapp:v1.0.0"}},
 						Strategy:          "RollingUpdate",
 						Age:               "24h",
 						Ready:             true,
