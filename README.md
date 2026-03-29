@@ -6,6 +6,7 @@ Kubernetes resource management components for cluster automation workflows.
 
 | Component | Description |
 |-----------|-------------|
+| Pod Create | Create a pod for one-off tasks or image pull tests |
 | Pod Watcher | Watch pod events in real time |
 | Pod Status | Get current status of a pod |
 | Pod Logs | Stream or fetch pod log output |
