@@ -62,6 +62,7 @@ type DeploymentInfo struct {
 	UpdatedReplicas   int32                 `json:"updatedReplicas" title:"Updated Replicas"`
 	Image             string                `json:"image,omitempty" title:"Image" description:"First container image"`
 	Containers        []ContainerInfo       `json:"containers,omitempty" title:"Containers" description:"All containers with names and images"`
+	ImagePullSecrets  []string              `json:"imagePullSecrets,omitempty" title:"Image Pull Secrets" description:"Names of secrets used to pull images"`
 	Strategy          string                `json:"strategy" title:"Strategy" description:"RollingUpdate or Recreate"`
 	Conditions        []DeploymentCondition `json:"conditions,omitempty" title:"Conditions"`
 	Age               string                `json:"age" title:"Age"`
@@ -189,6 +190,10 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 			info.Image = info.Containers[0].Image
 		}
 
+		for _, s := range d.Spec.Template.Spec.ImagePullSecrets {
+			info.ImagePullSecrets = append(info.ImagePullSecrets, s.Name)
+		}
+
 		for _, cond := range d.Status.Conditions {
 			info.Conditions = append(info.Conditions, DeploymentCondition{
 				Type:    string(cond.Type),
@@ -260,6 +265,7 @@ func (c *Component) Ports() []module.Port {
 						UpdatedReplicas:   3,
 						Image:             "myapp:v1.0.0",
 						Containers:        []ContainerInfo{{Name: "myapp-api", Image: "myapp:v1.0.0"}},
+					ImagePullSecrets:  []string{"regcred"},
 						Strategy:          "RollingUpdate",
 						Age:               "24h",
 						Ready:             true,
