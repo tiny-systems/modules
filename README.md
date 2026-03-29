@@ -22,6 +22,7 @@ Kubernetes resource management components for cluster automation workflows.
 | Service List | List services in a namespace |
 | Service Update | Update service spec or metadata |
 | ConfigMap Patch | Patch individual keys in a ConfigMap |
+| Secret Get | Read a Kubernetes Secret by name (regcred, TLS, opaque) |
 | Event Watcher | Watch Kubernetes events in real time |
 | Custom Resource List | List any Kubernetes resource by API version and kind (built-in or CRDs) |
 
