@@ -108,8 +108,16 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		return c.handleError(ctx, handler, req, "K8s client not available")
 	}
 
-	if req.Name == "" || req.Namespace == "" {
-		return c.handleError(ctx, handler, req, "namespace and name are required")
+	if req.Name == "" {
+		// No secret requested — pass through with empty value
+		return handler(ctx, ResultPort, Result{
+			Context:   req.Context,
+			Namespace: req.Namespace,
+		})
+	}
+
+	if req.Namespace == "" {
+		return c.handleError(ctx, handler, req, "namespace is required")
 	}
 
 	secret := &corev1.Secret{}
