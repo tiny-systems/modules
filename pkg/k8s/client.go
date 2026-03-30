@@ -48,5 +48,10 @@ func (c *LogsClient) GetLogs(ctx context.Context, namespace, podName string, opt
 	return string(logs), nil
 }
 
+// StreamLogs opens a streaming connection to pod logs. Caller must close the returned reader.
+func (c *LogsClient) StreamLogs(ctx context.Context, namespace, podName string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+	return c.clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).Stream(ctx)
+}
+
 // Ensure LogsClient implements RESTClient
 var _ RESTClient = (*LogsClient)(nil)

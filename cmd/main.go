@@ -26,6 +26,7 @@ import (
   _ "github.com/tiny-systems/kubernetes-module/components/poddelete"
   _ "github.com/tiny-systems/kubernetes-module/components/podlist"
   _ "github.com/tiny-systems/kubernetes-module/components/podlogs"
+  _ "github.com/tiny-systems/kubernetes-module/components/podlogswatch"
   _ "github.com/tiny-systems/kubernetes-module/components/podstatus"
   _ "github.com/tiny-systems/kubernetes-module/components/podupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/podwatcher"
