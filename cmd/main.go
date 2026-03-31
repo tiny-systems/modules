@@ -35,6 +35,7 @@ import (
   _ "github.com/tiny-systems/kubernetes-module/components/statefulsetlist"
   _ "github.com/tiny-systems/kubernetes-module/components/workloadlist"
   _ "github.com/tiny-systems/kubernetes-module/components/secretget"
+  _ "github.com/tiny-systems/kubernetes-module/components/webhookregister"
   _ "github.com/tiny-systems/kubernetes-module/components/workloadrestart"
 )
 
@@ -79,6 +80,12 @@ func main() {
 					APIGroups: []string{""},
 					Resources: []string{"configmaps"},
 					Verbs:     []string{"create", "update", "patch"},
+				},
+				// MutatingWebhookConfigurations - for webhook_register component
+				{
+					APIGroups: []string{"admissionregistration.k8s.io"},
+					Resources: []string{"mutatingwebhookconfigurations"},
+					Verbs:     []string{"get", "create", "update", "delete"},
 				},
 				// Pod logs access
 				{
