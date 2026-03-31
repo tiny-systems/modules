@@ -281,6 +281,11 @@ func (c *Component) Ports() []module.Port {
 
 	ports := []module.Port{
 		{
+			Name:     v1alpha1.ClientPort,
+			Label:    "Client",
+			Position: module.Left,
+		},
+		{
 			Name:  RequestPort,
 			Label: "Request",
 			Configuration: Request{
