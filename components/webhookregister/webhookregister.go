@@ -2,7 +2,9 @@ package webhookregister
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/tiny-systems/module/api/v1alpha1"
@@ -36,14 +38,16 @@ type Rule struct {
 
 type Request struct {
 	Context           Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Name              string  `json:"name" required:"true" title:"Name" description:"Webhook configuration name"`
-	ServiceName       string  `json:"serviceName" required:"true" title:"Service Name" description:"Target K8s service that handles webhook requests"`
-	ServiceNamespace  string  `json:"serviceNamespace" required:"true" title:"Service Namespace" description:"Namespace of the target service"`
-	ServicePath       string  `json:"servicePath,omitempty" title:"Service Path" description:"URL path on the service (default: /)"`
+	Name              string  `json:"name" required:"true" title:"Name" description:"Webhook configuration name" colSpan:"col-span-6"`
+	Operation         string  `json:"operation,omitempty" title:"Operation" description:"register or delete (default: register)" enum:"register,delete" enumTitles:"Register,Delete" colSpan:"col-span-6"`
+	ServiceName       string  `json:"serviceName" required:"true" title:"Service Name" description:"Target K8s service that handles webhook requests" colSpan:"col-span-6"`
+	ServicePort       int     `json:"servicePort,omitempty" title:"Service Port" description:"Port on the target service (default: 443)" colSpan:"col-span-6"`
+	ServiceNamespace  string  `json:"serviceNamespace" required:"true" title:"Service Namespace" description:"Namespace of the target service" colSpan:"col-span-6"`
+	ServicePath       string  `json:"servicePath,omitempty" title:"Service Path" description:"URL path on the service (default: /)" colSpan:"col-span-6"`
+	CABundle          string  `json:"caBundle,omitempty" title:"CA Bundle" description:"Base64-encoded CA certificate for self-signed TLS. Leave empty for public CAs." format:"textarea"`
 	NamespaceSelector string  `json:"namespaceSelector,omitempty" title:"Namespace Label" description:"Only intercept namespaces with this label (e.g. image-policy=enabled)"`
 	FailurePolicy     string  `json:"failurePolicy,omitempty" title:"Failure Policy" description:"Ignore or Fail (default: Ignore)" enum:"Ignore,Fail" enumTitles:"Ignore (safe),Fail (strict)"`
 	Rules             []Rule  `json:"rules" required:"true" title:"Rules" description:"What to intercept"`
-	Operation         string  `json:"operation,omitempty" title:"Operation" description:"register or delete (default: register)" enum:"register,delete" enumTitles:"Register,Delete"`
 }
 
 type Result struct {
@@ -164,6 +168,11 @@ func (c *Component) handleRegister(ctx context.Context, handler module.Handler, 
 		})
 	}
 
+	servicePort := int32(443)
+	if req.ServicePort > 0 {
+		servicePort = int32(req.ServicePort)
+	}
+
 	webhook := admissionregistrationv1.MutatingWebhook{
 		Name:                    req.Name + ".tinysystems.io",
 		AdmissionReviewVersions: []string{"v1"},
@@ -172,11 +181,22 @@ func (c *Component) handleRegister(ctx context.Context, handler module.Handler, 
 				Name:      req.ServiceName,
 				Namespace: req.ServiceNamespace,
 				Path:      &path,
+				Port:      &servicePort,
 			},
 		},
 		Rules:         rules,
 		FailurePolicy: &failurePolicy,
 		SideEffects:   &sideEffects,
+	}
+
+	if req.CABundle != "" {
+		decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(req.CABundle))
+		if err == nil {
+			webhook.ClientConfig.CABundle = decoded
+		} else {
+			// Treat as raw PEM
+			webhook.ClientConfig.CABundle = []byte(req.CABundle)
+		}
 	}
 
 	if req.NamespaceSelector != "" {
@@ -290,11 +310,11 @@ func (c *Component) Ports() []module.Port {
 			Label: "Request",
 			Configuration: Request{
 				Name:             "image-policy",
-				ServiceName:      "tinysystems-http-module-v0",
+				ServiceName:      "tinysystems-http-module-v0-manager-service",
+				ServicePort:      37077,
 				ServiceNamespace: "tinysystems-tinysystems",
 				ServicePath:      "/",
 				FailurePolicy:    "Ignore",
-				NamespaceSelector: "tinysystems.io/image-policy=enabled",
 				Rules: []Rule{
 					{
 						Operations:  []string{"CREATE", "UPDATE"},
