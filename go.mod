@@ -1,4 +1,4 @@
-module github.com/tiny-systems/example-module
+module github.com/tiny-systems/crypto-module
 
 go 1.25.0
 

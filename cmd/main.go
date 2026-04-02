@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	_ "github.com/tiny-systems/example-module/components/echo"
+	_ "github.com/tiny-systems/crypto-module/components/certgenerate"
 	"github.com/tiny-systems/module/cli"
 	"os"
 	"os/signal"
@@ -16,7 +16,7 @@ import (
 // RootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "server",
-	Short: "tiny-system's example module",
+	Short: "tiny-system's crypto module",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
