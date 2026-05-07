@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	_ "github.com/tiny-systems/example-module/components/echo"
+	_ "github.com/tiny-systems/git-module/components/echo"
 	"github.com/tiny-systems/module/cli"
 	"os"
 	"os/signal"
