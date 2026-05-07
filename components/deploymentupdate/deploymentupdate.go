@@ -123,35 +123,38 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	}
 }
 
-func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
-	switch port {
-	case v1alpha1.ClientPort:
-		if k8sProvider, ok := msg.(module.K8sClient); ok {
-			c.k8sClientLock.Lock()
-			c.k8sClient = k8sProvider.GetK8sClient()
-			c.k8sClientLock.Unlock()
-		}
-		return nil
-
-	case v1alpha1.SettingsPort:
-		in, ok := msg.(Settings)
-		if !ok {
-			return fmt.Errorf("invalid settings")
-		}
-		c.settingsLock.Lock()
-		c.settings = in
-		c.settingsLock.Unlock()
-		return nil
-
-	case RequestPort:
-		in, ok := msg.(Request)
-		if !ok {
-			return fmt.Errorf("invalid request")
-		}
-		return c.handleRequest(ctx, handler, in)
+// OnClient stashes the K8s client.
+func (c *Component) OnClient(k8sClient module.K8sClient) {
+	if k8sClient == nil {
+		return
 	}
+	c.k8sClientLock.Lock()
+	c.k8sClient = k8sClient.GetK8sClient()
+	c.k8sClientLock.Unlock()
+}
 
-	return fmt.Errorf("unknown port: %s", port)
+// OnSettings stores the component settings.
+func (c *Component) OnSettings(_ context.Context, msg any) error {
+	in, ok := msg.(Settings)
+	if !ok {
+		return fmt.Errorf("invalid settings")
+	}
+	c.settingsLock.Lock()
+	c.settings = in
+	c.settingsLock.Unlock()
+	return nil
+}
+
+// Handle dispatches business ports. System ports go through capabilities.
+func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
+	if port != RequestPort {
+		return fmt.Errorf("unknown port: %s", port)
+	}
+	in, ok := msg.(Request)
+	if !ok {
+		return fmt.Errorf("invalid request")
+	}
+	return c.handleRequest(ctx, handler, in)
 }
 
 func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
@@ -405,7 +408,11 @@ func (c *Component) Ports() []module.Port {
 	return ports
 }
 
-var _ module.Component = (*Component)(nil)
+var (
+	_ module.Component       = (*Component)(nil)
+	_ module.SettingsHandler = (*Component)(nil)
+	_ module.ClientAware     = (*Component)(nil)
+)
 
 func init() {
 	registry.Register(&Component{})

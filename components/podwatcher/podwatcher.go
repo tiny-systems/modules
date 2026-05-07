@@ -153,56 +153,56 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	}
 }
 
+// OnClient stashes the K8s client.
+func (c *Component) OnClient(k8sClient module.K8sClient) {
+	if k8sClient == nil {
+		return
+	}
+	c.k8sClientLock.Lock()
+	c.k8sClient = k8sClient.GetK8sClient()
+	c.k8sClientLock.Unlock()
+	log.Debug().Msg("K8s client received")
+}
+
+// OnSettings stores the component settings.
+func (c *Component) OnSettings(_ context.Context, msg any) error {
+	in, ok := msg.(Settings)
+	if !ok {
+		return fmt.Errorf("invalid settings message")
+	}
+	c.settingsLock.Lock()
+	c.settings = in
+	c.settingsLock.Unlock()
+	return nil
+}
+
+// Handle dispatches the StartPort. System ports go through capabilities.
 func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
-	switch port {
-	case v1alpha1.ClientPort:
-		if k8sProvider, ok := msg.(module.K8sClient); ok {
-			c.k8sClientLock.Lock()
-			c.k8sClient = k8sProvider.GetK8sClient()
-			c.k8sClientLock.Unlock()
-			log.Debug().Msg("K8s client received")
-		}
-		return nil
-
-	case v1alpha1.ReconcilePort:
-		return nil
-
-	case v1alpha1.SettingsPort:
-		in, ok := msg.(Settings)
-		if !ok {
-			return fmt.Errorf("invalid settings message")
-		}
-		c.settingsLock.Lock()
-		c.settings = in
-		c.settingsLock.Unlock()
-		return nil
-
-	case StartPort:
-		if msg == nil {
-			log.Info().Msg("pod_watch: StartPort received nil, stopping")
-			return c.stop()
-		}
-
-		in, ok := msg.(Start)
-		if !ok {
-			return fmt.Errorf("invalid start message")
-		}
-
-		if done := c.getWatchDone(); done != nil {
-			log.Info().Msg("pod_watch: already running, waiting for watcher to stop")
-			select {
-			case <-done:
-				return nil
-			case <-ctx.Done():
-				c.stop()
-				return nil
-			}
-		}
-
-		return c.runWatch(ctx, handler, in)
+	if port != StartPort {
+		return fmt.Errorf("unknown port: %s", port)
+	}
+	if msg == nil {
+		log.Info().Msg("pod_watch: StartPort received nil, stopping")
+		return c.stop()
 	}
 
-	return fmt.Errorf("unknown port: %s", port)
+	in, ok := msg.(Start)
+	if !ok {
+		return fmt.Errorf("invalid start message")
+	}
+
+	if done := c.getWatchDone(); done != nil {
+		log.Info().Msg("pod_watch: already running, waiting for watcher to stop")
+		select {
+		case <-done:
+			return nil
+		case <-ctx.Done():
+			c.stop()
+			return nil
+		}
+	}
+
+	return c.runWatch(ctx, handler, in)
 }
 
 
@@ -667,7 +667,11 @@ func (c *Component) Ports() []module.Port {
 	return ports
 }
 
-var _ module.Component = (*Component)(nil)
+var (
+	_ module.Component       = (*Component)(nil)
+	_ module.SettingsHandler = (*Component)(nil)
+	_ module.ClientAware     = (*Component)(nil)
+)
 var _ module.Destroyer = (*Component)(nil)
 
 func (c *Component) OnDestroy(_ map[string]string) {
