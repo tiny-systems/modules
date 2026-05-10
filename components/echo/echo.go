@@ -36,11 +36,11 @@ func (t *Component) GetInfo() module.ComponentInfo {
 	}
 }
 
-func (t *Component) Handle(ctx context.Context, handler module.Handler, port string, msg interface{}) any {
+func (t *Component) Handle(ctx context.Context, handler module.Handler, port string, msg interface{}) module.Result {
 	if in, ok := msg.(InMessage); ok {
 		return handler(ctx, OutPort, in.Context)
 	}
-	return fmt.Errorf("invalid message")
+	return module.Fail(fmt.Errorf("invalid message"))
 }
 
 func (t *Component) Ports() []module.Port {
