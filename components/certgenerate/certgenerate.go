@@ -54,19 +54,19 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	}
 }
 
-func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
+func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) module.Result {
 	switch port {
 	case RequestPort:
 		in, ok := msg.(Request)
 		if !ok {
-			return fmt.Errorf("invalid request")
+			return module.Fail(fmt.Errorf("invalid request"))
 		}
 		return c.handleRequest(ctx, handler, in)
 	}
-	return fmt.Errorf("unknown port: %s", port)
+	return module.Fail(fmt.Errorf("unknown port: %s", port))
 }
 
-func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
+func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) module.Result {
 	validDays := req.ValidDays
 	if validDays <= 0 {
 		validDays = 3650
@@ -74,12 +74,12 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return fmt.Errorf("generate key: %w", err)
+		return module.Fail(fmt.Errorf("generate key: %w", err))
 	}
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		return fmt.Errorf("generate serial: %w", err)
+		return module.Fail(fmt.Errorf("generate serial: %w", err))
 	}
 
 	template := x509.Certificate{
@@ -96,14 +96,14 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
 	if err != nil {
-		return fmt.Errorf("create certificate: %w", err)
+		return module.Fail(fmt.Errorf("create certificate: %w", err))
 	}
 
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 
 	keyDER, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
-		return fmt.Errorf("marshal key: %w", err)
+		return module.Fail(fmt.Errorf("marshal key: %w", err))
 	}
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
 
