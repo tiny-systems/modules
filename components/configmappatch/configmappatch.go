@@ -102,18 +102,18 @@ func (c *Component) OnSettings(_ context.Context, msg any) error {
 }
 
 // Handle dispatches business ports. System ports go through capabilities.
-func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
+func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) module.Result {
 	if port != RequestPort {
-		return fmt.Errorf("unknown port: %s", port)
+		return module.Fail(fmt.Errorf("unknown port: %s", port))
 	}
 	in, ok := msg.(Request)
 	if !ok {
-		return fmt.Errorf("invalid request")
+		return module.Fail(fmt.Errorf("invalid request"))
 	}
 	return c.handleRequest(ctx, handler, in)
 }
 
-func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) any {
+func (c *Component) handleRequest(ctx context.Context, handler module.Handler, req Request) module.Result {
 	c.k8sClientLock.RLock()
 	k8sClient := c.k8sClient
 	c.k8sClientLock.RUnlock()
@@ -132,7 +132,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	}
 }
 
-func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sClient client.Client, req Request) any {
+func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sClient client.Client, req Request) module.Result {
 	cm := &corev1.ConfigMap{}
 	err := k8sClient.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: req.Name}, cm)
 
@@ -182,7 +182,7 @@ func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sCl
 	})
 }
 
-func (c *Component) handleRemove(ctx context.Context, handler module.Handler, k8sClient client.Client, req Request) any {
+func (c *Component) handleRemove(ctx context.Context, handler module.Handler, k8sClient client.Client, req Request) module.Result {
 	cm := &corev1.ConfigMap{}
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: req.Name}, cm); err != nil {
 		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to get configmap: %v", err))
@@ -217,7 +217,7 @@ func (c *Component) handleRemove(ctx context.Context, handler module.Handler, k8
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) any {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -228,7 +228,7 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 			Error:   errMsg,
 		})
 	}
-	return errors.New(errMsg)
+	return module.Fail(errors.New(errMsg))
 }
 
 func (c *Component) Ports() []module.Port {

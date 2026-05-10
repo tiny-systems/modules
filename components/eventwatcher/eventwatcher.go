@@ -153,32 +153,32 @@ func (c *Component) OnSettings(_ context.Context, msg any) error {
 }
 
 // Handle dispatches the StartPort. System ports go through capabilities.
-func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
+func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) module.Result {
 	if port != StartPort {
-		return fmt.Errorf("unknown port: %s", port)
+		return module.Fail(fmt.Errorf("unknown port: %s", port))
 	}
 	if msg == nil {
 		log.Info().Msg("event_watch: StartPort received nil, stopping")
-		return c.stop()
+		return module.Fail(c.stop())
 	}
 
 	in, ok := msg.(Start)
 	if !ok {
-		return fmt.Errorf("invalid start message")
+		return module.Fail(fmt.Errorf("invalid start message"))
 	}
 
 	if done := c.getWatchDone(); done != nil {
 		log.Info().Msg("event_watch: already running, waiting for watcher to stop")
 		select {
 		case <-done:
-			return nil
+			return module.Result{}
 		case <-ctx.Done():
 			c.stop()
-			return nil
+			return module.Result{}
 		}
 	}
 
-	return c.runWatch(ctx, handler, in)
+	return module.Fail(c.runWatch(ctx, handler, in))
 }
 
 func (c *Component) getWatchDone() chan struct{} {
@@ -223,7 +223,7 @@ func (c *Component) updateControl(ctx context.Context, handler module.Handler, c
 	c.control = ctrl
 	c.controlLock.Unlock()
 
-	_ = handler(ctx, v1alpha1.ControlPort, ctrl)
+	handler(ctx, v1alpha1.ControlPort, ctrl)
 }
 
 func (c *Component) runWatch(ctx context.Context, handler module.Handler, start Start) error {
@@ -460,10 +460,8 @@ func (c *Component) emitEvent(ctx context.Context, handler module.Handler, userC
 		event.LastTimestamp = k8sEvent.LastTimestamp.Format(time.RFC3339)
 	}
 
-	if result := handler(ctx, EventPort, event); result != nil {
-		if err, ok := result.(error); ok {
-			log.Error().Err(err).Str("reason", k8sEvent.Reason).Msg("Failed to emit event")
-		}
+	if err := handler(ctx, EventPort, event).Err(); err != nil {
+		log.Error().Err(err).Str("reason", k8sEvent.Reason).Msg("Failed to emit event")
 	}
 }
 

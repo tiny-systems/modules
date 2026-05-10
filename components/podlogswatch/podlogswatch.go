@@ -145,31 +145,31 @@ func (c *Component) OnSettings(_ context.Context, msg any) error {
 }
 
 // Handle dispatches the StartPort. System ports go through capabilities.
-func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) any {
+func (c *Component) Handle(ctx context.Context, handler module.Handler, port string, msg any) module.Result {
 	if port != StartPort {
-		return fmt.Errorf("unknown port: %s", port)
+		return module.Fail(fmt.Errorf("unknown port: %s", port))
 	}
 	if msg == nil {
 		log.Info().Msg("pod_logs_watch: StartPort received nil, stopping")
-		return c.stop()
+		return module.Fail(c.stop())
 	}
 	in, ok := msg.(Start)
 	if !ok {
-		return fmt.Errorf("invalid start message")
+		return module.Fail(fmt.Errorf("invalid start message"))
 	}
 
 	if done := c.getWatchDone(); done != nil {
 		log.Info().Msg("pod_logs_watch: already running, waiting for watcher to stop")
 		select {
 		case <-done:
-			return nil
+			return module.Result{}
 		case <-ctx.Done():
 			c.stop()
-			return nil
+			return module.Result{}
 		}
 	}
 
-	return c.runWatch(ctx, handler, in)
+	return module.Fail(c.runWatch(ctx, handler, in))
 }
 
 func (c *Component) initLogsClient() {
@@ -412,7 +412,7 @@ func (c *Component) scanAndWatch(ctx context.Context, k8sClient client.Client, l
 	ctrl := c.control
 	c.controlLock.Unlock()
 
-	_ = handler(ctx, v1alpha1.ControlPort, ctrl)
+	handler(ctx, v1alpha1.ControlPort, ctrl)
 }
 
 func (c *Component) watchPodLogs(ctx context.Context, logsClient *k8s.LogsClient, namespace, podName, container string, keywords []string, tailLines int64, events chan<- LogEvent, userCtx Context) {
@@ -520,10 +520,8 @@ func (c *Component) emitterLoop(ctx context.Context, handler module.Handler, sta
 			c.matchCount++
 			c.matchCountLock.Unlock()
 
-			if result := handler(ctx, EventPort, event); result != nil {
-				if err, ok := result.(error); ok {
-					log.Error().Err(err).Str("pod", event.Pod).Msg("pod_logs_watch: failed to emit log event")
-				}
+			if err := handler(ctx, EventPort, event).Err(); err != nil {
+				log.Error().Err(err).Str("pod", event.Pod).Msg("pod_logs_watch: failed to emit log event")
 			}
 		}
 	}
@@ -534,10 +532,10 @@ func (c *Component) updateControl(ctx context.Context, handler module.Handler, c
 	c.control = ctrl
 	c.controlLock.Unlock()
 
-	_ = handler(ctx, v1alpha1.ControlPort, ctrl)
+	handler(ctx, v1alpha1.ControlPort, ctrl)
 }
 
-func (c *Component) handleError(handler module.Handler, userCtx Context, errMsg string) any {
+func (c *Component) handleError(handler module.Handler, userCtx Context, errMsg string) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -548,7 +546,7 @@ func (c *Component) handleError(handler module.Handler, userCtx Context, errMsg 
 			Error:   errMsg,
 		})
 	}
-	return errors.New(errMsg)
+	return module.Fail(errors.New(errMsg))
 }
 
 func (c *Component) Ports() []module.Port {
