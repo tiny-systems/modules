@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-21T14:45:27Z"
+generated: "2026-07-21T16:22:01Z"
 modules:
   common-module:
     category: core
@@ -35,16 +35,13 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      clusterFills:
-      - ingressClass
       image: ghcr.io/tiny-systems/http-module:0.5.25
       values: |
+        # http_server needs pod RBAC to find + expose its listener. Ingress is optional
+        # (enabled per-cluster when an ingress class is set); on local it's reached via
+        # tiny's localhost tunnel, so it's not required to install.
         rbac:
           enableKubernetesResourceAccess: true
-        managerIngress:
-          ingress:
-            enabled: true
-            className: "${cluster.ingressClass}"
       version: 0.5.25
   kubernetes-module:
     category: infra
