@@ -3,7 +3,7 @@ source: github.com/tiny-systems/llm-module
 description: LLM chat, completion, and tool-calling
 category: ai
 versions:
-  - version: 0.10.7
-    image: ghcr.io/tiny-systems/llm-module:0.10.7
+  - version: 0.10.8
+    image: ghcr.io/tiny-systems/llm-module:0.10.8
     chart: tinysystems/tinysystems-operator
     chartVersion: 0.2.10

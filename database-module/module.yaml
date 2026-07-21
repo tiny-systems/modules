@@ -3,7 +3,7 @@ source: github.com/tiny-systems/database-module
 description: Postgres, Redis, and vector store components
 category: data
 versions:
-  - version: 0.6.5
-    image: ghcr.io/tiny-systems/database-module:0.6.5
+  - version: 0.6.6
+    image: ghcr.io/tiny-systems/database-module:0.6.6
     chart: tinysystems/tinysystems-operator
     chartVersion: 0.2.10

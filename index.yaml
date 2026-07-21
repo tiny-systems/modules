@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-21T13:06:45Z"
+generated: "2026-07-21T14:45:27Z"
 modules:
   common-module:
     category: core
@@ -17,8 +17,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/database-module:0.6.5
-      version: 0.6.5
+      image: ghcr.io/tiny-systems/database-module:0.6.6
+      version: 0.6.6
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
@@ -26,8 +26,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.7
-      version: 0.3.7
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.8
+      version: 0.3.8
   http-module:
     category: net
     description: HTTP client and server components
@@ -37,7 +37,7 @@ modules:
       chartVersion: 0.2.10
       clusterFills:
       - ingressClass
-      image: ghcr.io/tiny-systems/http-module:0.5.24
+      image: ghcr.io/tiny-systems/http-module:0.5.25
       values: |
         rbac:
           enableKubernetesResourceAccess: true
@@ -45,7 +45,7 @@ modules:
           ingress:
             enabled: true
             className: "${cluster.ingressClass}"
-      version: 0.5.24
+      version: 0.5.25
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -53,11 +53,11 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.4
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.5
       values: |
         rbac:
           enableKubernetesResourceAccess: true
-      version: 0.8.4
+      version: 0.8.5
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
@@ -65,5 +65,5 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/llm-module:0.10.7
-      version: 0.10.7
+      image: ghcr.io/tiny-systems/llm-module:0.10.8
+      version: 0.10.8

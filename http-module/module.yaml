@@ -3,8 +3,8 @@ source: github.com/tiny-systems/http-module
 description: HTTP client and server components
 category: net
 versions:
-  - version: 0.5.24
-    image: ghcr.io/tiny-systems/http-module:0.5.24
+  - version: 0.5.25
+    image: ghcr.io/tiny-systems/http-module:0.5.25
     chart: tinysystems/tinysystems-operator
     chartVersion: 0.2.10
     clusterFills: [ingressClass]
