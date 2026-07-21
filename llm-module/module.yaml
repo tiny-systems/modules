@@ -1,0 +1,9 @@
+name: llm-module
+source: github.com/tiny-systems/llm-module
+description: LLM chat, completion, and tool-calling
+category: ai
+versions:
+  - version: 0.10.7
+    image: ghcr.io/tiny-systems/llm-module:0.10.7
+    chart: tinysystems-operator
+    chartVersion: ">=0.2.0 <0.3.0"

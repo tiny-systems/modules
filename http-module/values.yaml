@@ -1,0 +1,6 @@
+rbac:
+  enableKubernetesResourceAccess: true
+managerIngress:
+  ingress:
+    enabled: true
+    className: "${cluster.ingressClass}"

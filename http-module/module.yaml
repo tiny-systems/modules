@@ -1,0 +1,10 @@
+name: http-module
+source: github.com/tiny-systems/http-module
+description: HTTP client and server components
+category: net
+versions:
+  - version: 0.5.24
+    image: ghcr.io/tiny-systems/http-module:0.5.24
+    chart: tinysystems-operator
+    chartVersion: ">=0.2.0 <0.3.0"
+    clusterFills: [ingressClass]
