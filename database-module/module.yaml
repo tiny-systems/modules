@@ -5,5 +5,5 @@ category: data
 versions:
   - version: 0.6.5
     image: ghcr.io/tiny-systems/database-module:0.6.5
-    chart: tinysystems-operator
-    chartVersion: ">=0.2.0 <0.3.0"
+    chart: tinysystems/tinysystems-operator
+    chartVersion: 0.2.10

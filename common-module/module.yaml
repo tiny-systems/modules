@@ -3,7 +3,7 @@ source: github.com/tiny-systems/common-module
 description: Core flow components — signal, transform, router, delay, kv, run
 category: core
 versions:
-  - version: 0.7.7
-    image: ghcr.io/tiny-systems/common-module:0.7.7
-    chart: tinysystems-operator
-    chartVersion: ">=0.2.0 <0.3.0"
+  - version: 0.7.8
+    image: ghcr.io/tiny-systems/common-module:0.7.8
+    chart: tinysystems/tinysystems-operator
+    chartVersion: 0.2.10

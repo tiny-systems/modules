@@ -1,22 +1,22 @@
 apiVersion: tiny/v2
-generated: "2026-07-21T10:43:28Z"
+generated: "2026-07-21T13:06:45Z"
 modules:
   common-module:
     category: core
     description: Core flow components — signal, transform, router, delay, kv, run
     source: github.com/tiny-systems/common-module
     versions:
-    - chart: tinysystems-operator
-      chartVersion: '>=0.2.0 <0.3.0'
-      image: ghcr.io/tiny-systems/common-module:0.7.7
-      version: 0.7.7
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
+      image: ghcr.io/tiny-systems/common-module:0.7.8
+      version: 0.7.8
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
     source: github.com/tiny-systems/database-module
     versions:
-    - chart: tinysystems-operator
-      chartVersion: '>=0.2.0 <0.3.0'
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
       image: ghcr.io/tiny-systems/database-module:0.6.5
       version: 0.6.5
   googleapis-module:
@@ -24,8 +24,8 @@ modules:
     description: Google Calendar, Firestore, and OAuth components
     source: github.com/tiny-systems/googleapis-module
     versions:
-    - chart: tinysystems-operator
-      chartVersion: '>=0.2.0 <0.3.0'
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
       image: ghcr.io/tiny-systems/googleapis-module:0.3.7
       version: 0.3.7
   http-module:
@@ -33,8 +33,8 @@ modules:
     description: HTTP client and server components
     source: github.com/tiny-systems/http-module
     versions:
-    - chart: tinysystems-operator
-      chartVersion: '>=0.2.0 <0.3.0'
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
       clusterFills:
       - ingressClass
       image: ghcr.io/tiny-systems/http-module:0.5.24
@@ -51,8 +51,8 @@ modules:
     description: Kubernetes ops — pods, deployments, services, watches
     source: github.com/tiny-systems/kubernetes-module
     versions:
-    - chart: tinysystems-operator
-      chartVersion: '>=0.2.0 <0.3.0'
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
       image: ghcr.io/tiny-systems/kubernetes-module:0.8.4
       values: |
         rbac:
@@ -63,7 +63,7 @@ modules:
     description: LLM chat, completion, and tool-calling
     source: github.com/tiny-systems/llm-module
     versions:
-    - chart: tinysystems-operator
-      chartVersion: '>=0.2.0 <0.3.0'
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
       image: ghcr.io/tiny-systems/llm-module:0.10.7
       version: 0.10.7

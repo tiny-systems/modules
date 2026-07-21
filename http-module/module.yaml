@@ -5,6 +5,6 @@ category: net
 versions:
   - version: 0.5.24
     image: ghcr.io/tiny-systems/http-module:0.5.24
-    chart: tinysystems-operator
-    chartVersion: ">=0.2.0 <0.3.0"
+    chart: tinysystems/tinysystems-operator
+    chartVersion: 0.2.10
     clusterFills: [ingressClass]
