@@ -50,8 +50,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/js-module:0.3.10
-      version: 0.3.10
+      image: ghcr.io/tiny-systems/js-module:0.3.11
+      version: 0.3.11
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
