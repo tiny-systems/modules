@@ -35,14 +35,14 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/http-module:0.5.25
+      image: ghcr.io/tiny-systems/http-module:0.5.26
       values: |
         # http_server needs pod RBAC to find + expose its listener. Ingress is optional
         # (enabled per-cluster when an ingress class is set); on local it's reached via
         # tiny's localhost tunnel, so it's not required to install.
         rbac:
           enableKubernetesResourceAccess: true
-      version: 0.5.25
+      version: 0.5.26
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
