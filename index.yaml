@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-21T16:22:01Z"
+generated: "2026-07-24T00:00:00Z"
 modules:
   common-module:
     category: core
@@ -8,8 +8,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/common-module:0.7.8
-      version: 0.7.8
+      image: ghcr.io/tiny-systems/common-module:0.7.10
+      version: 0.7.10
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -17,8 +17,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/communication-module:0.3.8
-      version: 0.3.8
+      image: ghcr.io/tiny-systems/communication-module:0.3.9
+      version: 0.3.9
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
@@ -26,8 +26,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/crypto-module:0.3.8
-      version: 0.3.8
+      image: ghcr.io/tiny-systems/crypto-module:0.3.9
+      version: 0.3.9
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
@@ -35,8 +35,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/database-module:0.6.6
-      version: 0.6.6
+      image: ghcr.io/tiny-systems/database-module:0.6.7
+      version: 0.6.7
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
@@ -44,8 +44,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/distribution-module:0.10.8
-      version: 0.10.8
+      image: ghcr.io/tiny-systems/distribution-module:0.10.9
+      version: 0.10.9
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
@@ -62,8 +62,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/encoding-module:0.6.5
-      version: 0.6.5
+      image: ghcr.io/tiny-systems/encoding-module:0.6.6
+      version: 0.6.6
   git-module:
     category: dev
     description: Git operations — clone, read, and commit repositories
@@ -71,8 +71,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/git-module:0.2.1
-      version: 0.2.1
+      image: ghcr.io/tiny-systems/git-module:0.2.2
+      version: 0.2.2
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
@@ -80,8 +80,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.8
-      version: 0.3.8
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.9
+      version: 0.3.9
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
@@ -89,8 +89,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/grpc-module:0.4.8
-      version: 0.4.8
+      image: ghcr.io/tiny-systems/grpc-module:0.4.9
+      version: 0.4.9
   http-module:
     category: net
     description: HTTP client and server components
@@ -98,14 +98,14 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/http-module:0.5.26
+      image: ghcr.io/tiny-systems/http-module:0.5.27
       values: |
         # http_server needs pod RBAC to find + expose its listener. Ingress is optional
         # (enabled per-cluster when an ingress class is set); on local it's reached via
         # tiny's localhost tunnel, so it's not required to install.
         rbac:
           enableKubernetesResourceAccess: true
-      version: 0.5.26
+      version: 0.5.27
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow data (the code/eval component)
@@ -113,8 +113,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/js-module:0.3.11
-      version: 0.3.11
+      image: ghcr.io/tiny-systems/js-module:0.3.12
+      version: 0.3.12
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -122,11 +122,11 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.5
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.6
       values: |
         rbac:
           enableKubernetesResourceAccess: true
-      version: 0.8.5
+      version: 0.8.6
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
@@ -134,8 +134,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/llm-module:0.10.8
-      version: 0.10.8
+      image: ghcr.io/tiny-systems/llm-module:0.10.11
+      version: 0.10.11
   store-module:
     category: data
     description: Document store — persist and query JSON documents
@@ -143,8 +143,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/store-module:0.1.10
-      version: 0.1.10
+      image: ghcr.io/tiny-systems/store-module:0.1.11
+      version: 0.1.11
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
@@ -152,5 +152,5 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/wasm-module:0.3.9
-      version: 0.3.9
+      image: ghcr.io/tiny-systems/wasm-module:0.3.10
+      version: 0.3.10
