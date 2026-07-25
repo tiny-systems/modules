@@ -29,9 +29,16 @@ for mf in */module.yaml; do
 
   # The image CMD is "/manager run"; override the entrypoint to the binary so
   # `tools rbac-values` runs instead of being treated as the executable name.
-  if ! declared=$(docker run --rm --entrypoint /manager "$img" tools rbac-values 2>/dev/null); then
+  declared=$(docker run --rm --entrypoint /manager "$img" tools rbac-values 2>/dev/null)
+  rc=$?
+  # A v0.13.35+ image emits nothing (module declares no RBAC) or a block that
+  # starts with `rbac:`. Older images lack the subcommand — cobra prints the
+  # `tools` help to stdout (exit 0) or the run fails. Detect both and skip, so
+  # a pre-v0.13.35 image is never mistaken for one that "declares" help text.
+  first=$(printf '%s' "$declared" | head -1)
+  if [ $rc -ne 0 ] || { [ -n "$declared" ] && [ "$first" != "rbac:" ]; }; then
     if [ "${STRICT:-0}" = "1" ]; then
-      echo "✗ $dir: image $img has no 'tools rbac-values' and STRICT=1"
+      echo "✗ $dir: $img has no 'tools rbac-values' and STRICT=1"
       fail=1
     else
       echo "· $dir: $img has no 'tools rbac-values' (pre-v0.13.35 SDK) — skipped"
