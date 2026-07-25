@@ -1,0 +1,24 @@
+# Fails a PR/push if any module's committed values.yaml rbac overlay drifts from
+# what that module's image declares via `tools rbac-values` (SDK >= v0.13.35).
+# This is the guard that keeps the self-hosted ClusterRole in sync with the
+# module's registry.SetRequirements — the single source of truth.
+name: RBAC overlay drift check
+on:
+  push:
+    paths:
+      - "*/values.yaml"
+      - "*/module.yaml"
+      - "scripts/check-rbac-drift.sh"
+      - ".github/workflows/rbac-drift.yml"
+  pull_request:
+    paths:
+      - "*/values.yaml"
+      - "*/module.yaml"
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Public GHCR images; docker is preinstalled on ubuntu-latest runners.
+      - name: Check RBAC overlay drift
+        run: bash scripts/check-rbac-drift.sh

@@ -122,15 +122,42 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.6
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.7
       values: |
         rbac:
           enableKubernetesResourceAccess: true
           extraRules:
-          - apiGroups: [""]
-            resources: ["pods/log"]
-            verbs: ["get"]
-      version: 0.8.6
+          - apiGroups:
+            - apps
+            resources:
+            - deployments
+            verbs:
+            - update
+            - patch
+          - apiGroups:
+            - ""
+            resources:
+            - configmaps
+            verbs:
+            - create
+            - update
+            - patch
+          - apiGroups:
+            - admissionregistration.k8s.io
+            resources:
+            - mutatingwebhookconfigurations
+            verbs:
+            - get
+            - create
+            - update
+            - delete
+          - apiGroups:
+            - ""
+            resources:
+            - pods/log
+            verbs:
+            - get
+      version: 0.8.7
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
