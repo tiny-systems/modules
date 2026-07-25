@@ -1,0 +1,9 @@
+name: store-module
+source: github.com/tiny-systems/store-module
+description: Document store — persist and query JSON documents
+category: data
+versions:
+- version: 0.1.11
+  image: ghcr.io/tiny-systems/store-module:0.1.11
+  chart: tinysystems/tinysystems-operator
+  chartVersion: 0.2.10

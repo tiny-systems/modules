@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-24T00:00:00Z"
+generated: "2026-07-25T17:32:54Z"
 modules:
   common-module:
     category: core
@@ -127,7 +127,8 @@ modules:
       version: 0.5.28
   js-module:
     category: core
-    description: JavaScript eval — run JS to parse, transform, and compute over flow data (the code/eval component)
+    description: JavaScript eval — run JS to parse, transform, and compute over flow
+      data (the code/eval component)
     source: github.com/tiny-systems/js-module
     versions:
     - chart: tinysystems/tinysystems-operator
