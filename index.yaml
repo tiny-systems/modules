@@ -134,8 +134,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/llm-module:0.10.11
-      version: 0.10.11
+      image: ghcr.io/tiny-systems/llm-module:0.10.12
+      version: 0.10.12
   store-module:
     category: data
     description: Document store — persist and query JSON documents
