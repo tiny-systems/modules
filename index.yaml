@@ -8,8 +8,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/common-module:0.7.10
-      version: 0.7.10
+      image: ghcr.io/tiny-systems/common-module:0.7.11
+      version: 0.7.11
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
