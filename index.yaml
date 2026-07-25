@@ -8,8 +8,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/common-module:0.7.12
-      version: 0.7.12
+      image: ghcr.io/tiny-systems/common-module:0.7.13
+      version: 0.7.13
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -35,8 +35,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/database-module:0.6.7
-      version: 0.6.7
+      image: ghcr.io/tiny-systems/database-module:0.6.8
+      version: 0.6.8
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
@@ -80,8 +80,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.9
-      version: 0.3.9
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.10
+      version: 0.3.10
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
@@ -98,14 +98,33 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/http-module:0.5.27
+      image: ghcr.io/tiny-systems/http-module:0.5.28
       values: |
-        # http_server needs pod RBAC to find + expose its listener. Ingress is optional
-        # (enabled per-cluster when an ingress class is set); on local it's reached via
-        # tiny's localhost tunnel, so it's not required to install.
         rbac:
-          enableKubernetesResourceAccess: true
-      version: 0.5.27
+          extraRules:
+          - apiGroups:
+            - ""
+            resources:
+            - pods
+            verbs:
+            - get
+          - apiGroups:
+            - ""
+            resources:
+            - services
+            verbs:
+            - get
+            - list
+            - update
+          - apiGroups:
+            - networking.k8s.io
+            resources:
+            - ingresses
+            verbs:
+            - get
+            - list
+            - update
+      version: 0.5.28
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow data (the code/eval component)
@@ -165,8 +184,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/llm-module:0.10.12
-      version: 0.10.12
+      image: ghcr.io/tiny-systems/llm-module:0.10.13
+      version: 0.10.13
   store-module:
     category: data
     description: Document store — persist and query JSON documents

@@ -1,5 +1,24 @@
-# http_server needs pod RBAC to find + expose its listener. Ingress is optional
-# (enabled per-cluster when an ingress class is set); on local it's reached via
-# tiny's localhost tunnel, so it's not required to install.
 rbac:
-  enableKubernetesResourceAccess: true
+  extraRules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    resources:
+    - services
+    verbs:
+    - get
+    - list
+    - update
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - list
+    - update
