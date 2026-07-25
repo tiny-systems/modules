@@ -61,14 +61,14 @@ func main() {
 		RBAC: module.RBACRequirements{
 			// Enable base K8s resource access (pods, services, configmaps, secrets, etc.)
 			EnableKubernetesResourceAccess: true,
-			// Additional rules for cluster-wide resources and CRDs
+			// Additional rules beyond the base access above. Least-privilege:
+			// NO cluster-wide "*/*" read wildcard — it granted read of every
+			// object incl. all Secrets. resource_watch / custom_resource_list /
+			// secret_get on arbitrary resources therefore aren't covered here;
+			// scope a resource-specific rule (ideally resourceNames-pinned) when
+			// a deployment genuinely needs one, so the ServiceAccount never gets
+			// blanket cluster read.
 			ExtraRules: []module.RBACRule{
-				// Watch all resources (wildcard) - for ResourceWatcher
-				{
-					APIGroups: []string{"*"},
-					Resources: []string{"*"},
-					Verbs:     []string{"get", "list", "watch"},
-				},
 				// Deployments update - for restart/scale operations
 				{
 					APIGroups: []string{"apps"},
