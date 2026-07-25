@@ -126,6 +126,10 @@ modules:
       values: |
         rbac:
           enableKubernetesResourceAccess: true
+          extraRules:
+          - apiGroups: [""]
+            resources: ["pods/log"]
+            verbs: ["get"]
       version: 0.8.6
   llm-module:
     category: ai

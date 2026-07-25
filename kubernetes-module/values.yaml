@@ -1,2 +1,22 @@
+# RBAC for the kubernetes-module controller. This overlay MUST mirror the
+# permissions the module's components actually use — the decentralized install
+# path renders the ClusterRole from these values, not from the compiled-in
+# registry.SetRequirements in cmd/main.go, so anything missing here is silently
+# ungranted at runtime (pod_logs_get failed with "cannot get pods/log" until
+# the pods/log rule below was added).
+#
+# NOTE: cmd/main.go additionally declares a cluster-wide read wildcard
+# (apiGroups/resources "*", verbs get/list/watch) plus deployments update/patch,
+# configmaps write, and mutatingwebhookconfigurations — used by the
+# resource_watch, deployment restart/scale, configmap_patch, and
+# webhook_register components. Those are intentionally NOT granted here yet
+# because the wildcard is broad; add them deliberately when those components
+# are needed.
 rbac:
   enableKubernetesResourceAccess: true
+  extraRules:
+    # pod_logs_get / pod_logs_watch — a subresource, not covered by the base
+    # pods rule that enableKubernetesResourceAccess grants.
+    - apiGroups: [""]
+      resources: ["pods/log"]
+      verbs: ["get"]
