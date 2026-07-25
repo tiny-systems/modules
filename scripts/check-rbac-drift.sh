@@ -27,7 +27,9 @@ for mf in */module.yaml; do
     continue
   fi
 
-  if ! declared=$(docker run --rm "$img" tools rbac-values 2>/dev/null); then
+  # The image CMD is "/manager run"; override the entrypoint to the binary so
+  # `tools rbac-values` runs instead of being treated as the executable name.
+  if ! declared=$(docker run --rm --entrypoint /manager "$img" tools rbac-values 2>/dev/null); then
     if [ "${STRICT:-0}" = "1" ]; then
       echo "✗ $dir: image $img has no 'tools rbac-values' and STRICT=1"
       fail=1
