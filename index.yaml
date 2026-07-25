@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-25T17:32:54Z"
+generated: "2026-07-25T21:44:56Z"
 modules:
   common-module:
     category: core
@@ -17,8 +17,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/communication-module:0.3.9
-      version: 0.3.9
+      image: ghcr.io/tiny-systems/communication-module:0.3.10
+      version: 0.3.10
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
@@ -26,8 +26,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/crypto-module:0.3.9
-      version: 0.3.9
+      image: ghcr.io/tiny-systems/crypto-module:0.3.10
+      version: 0.3.10
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
@@ -44,8 +44,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/distribution-module:0.10.9
-      version: 0.10.9
+      image: ghcr.io/tiny-systems/distribution-module:0.10.10
+      version: 0.10.10
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
@@ -53,8 +53,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/embedding-module:0.0.13
-      version: 0.0.13
+      image: ghcr.io/tiny-systems/embedding-module:0.0.14
+      version: 0.0.14
   encoding-module:
     category: core
     description: Encoding — JSON, XML, JWT, and Go templates
@@ -62,8 +62,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/encoding-module:0.6.6
-      version: 0.6.6
+      image: ghcr.io/tiny-systems/encoding-module:0.6.7
+      version: 0.6.7
   git-module:
     category: dev
     description: Git operations — clone, read, and commit repositories
@@ -71,8 +71,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/git-module:0.2.2
-      version: 0.2.2
+      image: ghcr.io/tiny-systems/git-module:0.2.3
+      version: 0.2.3
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
@@ -89,8 +89,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/grpc-module:0.4.9
-      version: 0.4.9
+      image: ghcr.io/tiny-systems/grpc-module:0.4.10
+      version: 0.4.10
   http-module:
     category: net
     description: HTTP client and server components
@@ -133,8 +133,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/js-module:0.3.13
-      version: 0.3.13
+      image: ghcr.io/tiny-systems/js-module:0.3.14
+      version: 0.3.14
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -194,8 +194,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/store-module:0.1.11
-      version: 0.1.11
+      image: ghcr.io/tiny-systems/store-module:0.1.12
+      version: 0.1.12
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
@@ -203,5 +203,5 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/wasm-module:0.3.10
-      version: 0.3.10
+      image: ghcr.io/tiny-systems/wasm-module:0.3.11
+      version: 0.3.11
