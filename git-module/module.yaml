@@ -3,7 +3,7 @@ source: github.com/tiny-systems/git-module
 description: Git operations — clone, read, and commit repositories
 category: dev
 versions:
-- version: 0.2.3
-  image: ghcr.io/tiny-systems/git-module:0.2.3
+- version: 0.2.4
+  image: ghcr.io/tiny-systems/git-module:0.2.4
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.10

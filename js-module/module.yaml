@@ -4,7 +4,7 @@ description: JavaScript eval — run JS to parse, transform, and compute over fl
   (the code/eval component)
 category: core
 versions:
-- version: 0.3.14
-  image: ghcr.io/tiny-systems/js-module:0.3.14
+- version: 0.3.15
+  image: ghcr.io/tiny-systems/js-module:0.3.15
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.10

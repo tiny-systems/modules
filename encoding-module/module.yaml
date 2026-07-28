@@ -3,7 +3,7 @@ source: github.com/tiny-systems/encoding-module
 description: Encoding — JSON, XML, JWT, and Go templates
 category: core
 versions:
-- version: 0.6.7
-  image: ghcr.io/tiny-systems/encoding-module:0.6.7
+- version: 0.6.8
+  image: ghcr.io/tiny-systems/encoding-module:0.6.8
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.10

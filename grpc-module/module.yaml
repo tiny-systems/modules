@@ -3,7 +3,7 @@ source: github.com/tiny-systems/grpc-module
 description: gRPC client — call gRPC service methods
 category: net
 versions:
-- version: 0.4.10
-  image: ghcr.io/tiny-systems/grpc-module:0.4.10
+- version: 0.4.11
+  image: ghcr.io/tiny-systems/grpc-module:0.4.11
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.10

@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-25T21:44:56Z"
+generated: "2026-07-28T09:51:44Z"
 modules:
   common-module:
     category: core
@@ -8,8 +8,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/common-module:0.7.13
-      version: 0.7.13
+      image: ghcr.io/tiny-systems/common-module:0.7.14
+      version: 0.7.14
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -17,8 +17,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/communication-module:0.3.10
-      version: 0.3.10
+      image: ghcr.io/tiny-systems/communication-module:0.3.11
+      version: 0.3.11
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
@@ -26,8 +26,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/crypto-module:0.3.10
-      version: 0.3.10
+      image: ghcr.io/tiny-systems/crypto-module:0.3.11
+      version: 0.3.11
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
@@ -35,8 +35,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/database-module:0.6.8
-      version: 0.6.8
+      image: ghcr.io/tiny-systems/database-module:0.6.9
+      version: 0.6.9
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
@@ -44,8 +44,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/distribution-module:0.10.10
-      version: 0.10.10
+      image: ghcr.io/tiny-systems/distribution-module:0.10.11
+      version: 0.10.11
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
@@ -53,8 +53,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/embedding-module:0.0.14
-      version: 0.0.14
+      image: ghcr.io/tiny-systems/embedding-module:0.0.15
+      version: 0.0.15
   encoding-module:
     category: core
     description: Encoding — JSON, XML, JWT, and Go templates
@@ -62,8 +62,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/encoding-module:0.6.7
-      version: 0.6.7
+      image: ghcr.io/tiny-systems/encoding-module:0.6.8
+      version: 0.6.8
   git-module:
     category: dev
     description: Git operations — clone, read, and commit repositories
@@ -71,8 +71,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/git-module:0.2.3
-      version: 0.2.3
+      image: ghcr.io/tiny-systems/git-module:0.2.4
+      version: 0.2.4
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
@@ -80,8 +80,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.10
-      version: 0.3.10
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.11
+      version: 0.3.11
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
@@ -89,8 +89,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/grpc-module:0.4.10
-      version: 0.4.10
+      image: ghcr.io/tiny-systems/grpc-module:0.4.11
+      version: 0.4.11
   http-module:
     category: net
     description: HTTP client and server components
@@ -98,7 +98,7 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/http-module:0.5.28
+      image: ghcr.io/tiny-systems/http-module:0.5.31
       values: |
         rbac:
           extraRules:
@@ -124,7 +124,7 @@ modules:
             - get
             - list
             - update
-      version: 0.5.28
+      version: 0.5.31
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
@@ -133,8 +133,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/js-module:0.3.14
-      version: 0.3.14
+      image: ghcr.io/tiny-systems/js-module:0.3.15
+      version: 0.3.15
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -142,7 +142,7 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.7
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.8
       values: |
         rbac:
           enableKubernetesResourceAccess: true
@@ -177,7 +177,7 @@ modules:
             - pods/log
             verbs:
             - get
-      version: 0.8.7
+      version: 0.8.8
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
@@ -185,8 +185,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/llm-module:0.10.13
-      version: 0.10.13
+      image: ghcr.io/tiny-systems/llm-module:0.10.14
+      version: 0.10.14
   store-module:
     category: data
     description: Document store — persist and query JSON documents
@@ -194,8 +194,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/store-module:0.1.12
-      version: 0.1.12
+      image: ghcr.io/tiny-systems/store-module:0.1.13
+      version: 0.1.13
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
@@ -203,5 +203,5 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/wasm-module:0.3.11
-      version: 0.3.11
+      image: ghcr.io/tiny-systems/wasm-module:0.3.12
+      version: 0.3.12
