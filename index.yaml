@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-28T23:53:11Z"
+generated: "2026-07-29T00:00:27Z"
 modules:
   common-module:
     category: core
@@ -8,8 +8,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/common-module:0.7.19
-      version: 0.7.19
+      image: ghcr.io/tiny-systems/common-module:0.7.20
+      version: 0.7.20
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
