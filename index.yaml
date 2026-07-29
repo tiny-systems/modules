@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-29T00:00:27Z"
+generated: "2026-07-29T22:42:43Z"
 modules:
   common-module:
     category: core
@@ -185,8 +185,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/llm-module:0.10.16
-      version: 0.10.16
+      image: ghcr.io/tiny-systems/llm-module:0.10.17
+      version: 0.10.17
   store-module:
     category: data
     description: Document store — persist and query JSON documents
