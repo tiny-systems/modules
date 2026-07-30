@@ -76,11 +76,34 @@ func main() {
 					Resources: []string{"deployments"},
 					Verbs:     []string{"update", "patch"},
 				},
-				// ConfigMaps write - for configmap_patch component
+				// StatefulSets and DaemonSets - workload_list and
+				// workload_restart treat all three kinds alike, but the base
+				// access flag covers only Deployments.
+				{
+					APIGroups: []string{"apps"},
+					Resources: []string{"statefulsets", "daemonsets"},
+					Verbs:     []string{"get", "list", "watch", "update", "patch"},
+				},
+				// ConfigMaps - for configmap_patch, which reads the ConfigMap
+				// before upserting a key.
 				{
 					APIGroups: []string{""},
 					Resources: []string{"configmaps"},
-					Verbs:     []string{"create", "update", "patch"},
+					Verbs:     []string{"get", "create", "update", "patch"},
+				},
+				// Secrets read - for secret_get. Lost when the cluster-wide
+				// read wildcard was dropped for least privilege, which left the
+				// component unable to do the one thing it exists for.
+				{
+					APIGroups: []string{""},
+					Resources: []string{"secrets"},
+					Verbs:     []string{"get", "list"},
+				},
+				// Events read - for event_watch, lost the same way.
+				{
+					APIGroups: []string{""},
+					Resources: []string{"events"},
+					Verbs:     []string{"get", "list", "watch"},
 				},
 				// MutatingWebhookConfigurations - for webhook_register component
 				{
