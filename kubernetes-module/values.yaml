@@ -9,13 +9,40 @@ rbac:
     - update
     - patch
   - apiGroups:
+    - apps
+    resources:
+    - statefulsets
+    - daemonsets
+    verbs:
+    - get
+    - list
+    - watch
+    - update
+    - patch
+  - apiGroups:
     - ""
     resources:
     - configmaps
     verbs:
+    - get
     - create
     - update
     - patch
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - get
+    - list
+    - watch
   - apiGroups:
     - admissionregistration.k8s.io
     resources:

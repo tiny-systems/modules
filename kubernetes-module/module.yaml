@@ -3,7 +3,7 @@ source: github.com/tiny-systems/kubernetes-module
 description: Kubernetes ops — pods, deployments, services, watches
 category: infra
 versions:
-  - version: 0.8.10
-    image: ghcr.io/tiny-systems/kubernetes-module:0.8.10
+  - version: 0.8.11
+    image: ghcr.io/tiny-systems/kubernetes-module:0.8.11
     chart: tinysystems/tinysystems-operator
     chartVersion: 0.2.10

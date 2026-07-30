@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-30T08:39:05Z"
+generated: "2026-07-30T14:02:00Z"
 modules:
   common-module:
     category: core
@@ -142,7 +142,7 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.10
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.11
       values: |
         rbac:
           enableKubernetesResourceAccess: true
@@ -155,13 +155,40 @@ modules:
             - update
             - patch
           - apiGroups:
+            - apps
+            resources:
+            - statefulsets
+            - daemonsets
+            verbs:
+            - get
+            - list
+            - watch
+            - update
+            - patch
+          - apiGroups:
             - ""
             resources:
             - configmaps
             verbs:
+            - get
             - create
             - update
             - patch
+          - apiGroups:
+            - ""
+            resources:
+            - secrets
+            verbs:
+            - get
+            - list
+          - apiGroups:
+            - ""
+            resources:
+            - events
+            verbs:
+            - get
+            - list
+            - watch
           - apiGroups:
             - admissionregistration.k8s.io
             resources:
@@ -194,7 +221,7 @@ modules:
             - list
             - watch
             - delete
-      version: 0.8.10
+      version: 0.8.11
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
