@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-30T00:15:44Z"
+generated: "2026-07-30T00:28:52Z"
 modules:
   common-module:
     category: core
@@ -98,7 +98,7 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/http-module:0.5.34
+      image: ghcr.io/tiny-systems/http-module:0.5.35
       values: |
         rbac:
           extraRules:
@@ -124,7 +124,7 @@ modules:
             - get
             - list
             - update
-      version: 0.5.34
+      version: 0.5.35
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
