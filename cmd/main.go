@@ -30,6 +30,7 @@ import (
   _ "github.com/tiny-systems/kubernetes-module/components/podstatus"
   _ "github.com/tiny-systems/kubernetes-module/components/podupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/podwatcher"
+  _ "github.com/tiny-systems/kubernetes-module/components/sandboxrun"
   _ "github.com/tiny-systems/kubernetes-module/components/servicelist"
   _ "github.com/tiny-systems/kubernetes-module/components/serviceupdate"
   _ "github.com/tiny-systems/kubernetes-module/components/statefulsetlist"
@@ -92,6 +93,25 @@ func main() {
 					APIGroups: []string{""},
 					Resources: []string{"pods/log"},
 					Verbs:     []string{"get"},
+				},
+				// Pod create/delete — for pod_create and pod_delete. The base
+				// access flag above grants only get/list/patch/update/watch, so
+				// without this both components fail with a 403 the moment they
+				// are used on a self-hosted install. The drift gate cannot
+				// catch a gap like this: it compares the overlay against the
+				// declaration, never the declaration against the API calls the
+				// code actually makes.
+				{
+					APIGroups: []string{""},
+					Resources: []string{"pods"},
+					Verbs:     []string{"create", "delete"},
+				},
+				// Jobs — for sandbox_run, which creates one per script and
+				// removes it when the script finishes.
+				{
+					APIGroups: []string{"batch"},
+					Resources: []string{"jobs"},
+					Verbs:     []string{"create", "get", "list", "watch", "delete"},
 				},
 			},
 		},
