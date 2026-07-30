@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-29T22:42:43Z"
+generated: "2026-07-30T00:04:18Z"
 modules:
   common-module:
     category: core
@@ -35,8 +35,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/database-module:0.6.10
-      version: 0.6.10
+      image: ghcr.io/tiny-systems/database-module:0.6.11
+      version: 0.6.11
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
@@ -53,8 +53,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/embedding-module:0.0.16
-      version: 0.0.16
+      image: ghcr.io/tiny-systems/embedding-module:0.0.17
+      version: 0.0.17
   encoding-module:
     category: core
     description: Encoding — JSON, XML, JWT, and Go templates
@@ -89,8 +89,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/grpc-module:0.4.12
-      version: 0.4.12
+      image: ghcr.io/tiny-systems/grpc-module:0.4.13
+      version: 0.4.13
   http-module:
     category: net
     description: HTTP client and server components
