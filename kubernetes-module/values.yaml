@@ -31,3 +31,20 @@ rbac:
     - pods/log
     verbs:
     - get
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+  - apiGroups:
+    - batch
+    resources:
+    - jobs
+    verbs:
+    - create
+    - get
+    - list
+    - watch
+    - delete

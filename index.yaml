@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-30T00:28:52Z"
+generated: "2026-07-30T08:39:05Z"
 modules:
   common-module:
     category: core
@@ -142,7 +142,7 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.9
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.10
       values: |
         rbac:
           enableKubernetesResourceAccess: true
@@ -177,7 +177,24 @@ modules:
             - pods/log
             verbs:
             - get
-      version: 0.8.9
+          - apiGroups:
+            - ""
+            resources:
+            - pods
+            verbs:
+            - create
+            - delete
+          - apiGroups:
+            - batch
+            resources:
+            - jobs
+            verbs:
+            - create
+            - get
+            - list
+            - watch
+            - delete
+      version: 0.8.10
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
