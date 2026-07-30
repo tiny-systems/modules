@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-30T20:28:51Z"
+generated: "2026-07-30T21:02:41Z"
 modules:
   common-module:
     category: core
@@ -62,8 +62,8 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
-      image: ghcr.io/tiny-systems/encoding-module:0.6.9
-      version: 0.6.9
+      image: ghcr.io/tiny-systems/encoding-module:0.6.10
+      version: 0.6.10
   git-module:
     category: dev
     description: Git operations — clone, read, and commit repositories
