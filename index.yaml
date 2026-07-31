@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-30T23:09:10Z"
+generated: "2026-07-31T23:27:55Z"
 modules:
   common-module:
     category: core
@@ -8,6 +8,191 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Array Get
+        info: 'Get an array element by 1-based index. Input: {array, index}; returns
+          {item, index} or an error if the index is out of range.'
+        name: array_get
+        tags:
+        - SDK
+        - ARRAY
+        - agent_tool
+      - description: Ask a human
+        info: Human-in-the-loop gate. A message on Request publishes a form on the
+          Control port; the flow does NOT block. A human fills the form in the editor
+          and submits, which emits {values, context} on Out — wire Out to the action
+          being gated (e.g. workload_restart) and branch on the submitted values with
+          a router. The form is a JSON Schema authored in settings; fields with format:"button"
+          are the answers. Defaults to Approve/Deny. Use to put a person in front
+          of anything destructive.
+        name: ask
+        tags:
+        - SDK
+        - Human
+      - description: Async
+        info: Non-blocking pass-through. Returns immediately (unblocks sender), then
+          emits context on Out in a goroutine. Limits concurrent goroutines via maxConcurrency
+          setting to prevent memory issues.
+        name: async
+        tags:
+        - SDK
+      - description: Budget Guard
+        info: 'Bounds an agent loop. Wire it into the cycle — typically between a
+          tool result and the model it feeds — and it emits on Proceed while the loop
+          is within budget, or on Exceeded once it is not. Ceilings: iterations always,
+          plus optional total tokens and cost. Map the model''s usage into inputTokens/outputTokens,
+          and map iteration/spentTokens/spentUSD from Proceed back into the guard
+          on each pass; the counters travel in the payload so one guard can supervise
+          many loops at once. Without something like this a ReAct loop has no limit
+          at all: the graph closes the circuit and every iteration bills. Wire Exceeded
+          to a report, or to ask so a human decides whether to continue.'
+        name: budget_guard
+        tags:
+        - SDK
+        - Agent
+        - Safety
+      - description: Cron
+        info: 'Scheduled emitter using cron expressions. Click Start to begin emitting
+          context on Out port according to the schedule. Supports standard cron syntax
+          (minute hour day-of-month month day-of-week). Examples: ''*/5 * * * *''
+          (every 5 min), ''0 */2 * * *'' (every 2 hours), ''0 9 * * 1-5'' (9 AM weekdays).
+          Click Stop to pause. Cron survives pod restarts and leadership changes.'
+        name: cron
+        tags:
+        - SDK
+      - description: Debug
+        info: Message sink for inspection. Receives messages on In (no output ports).
+          Displays last received message in Control port. Use as flow endpoint to
+          inspect data or terminate unused branches.
+        name: debug
+        tags:
+        - SDK
+      - description: Delay
+        info: Timed pause. Receives context + delay (ms) on In, sleeps for specified
+          duration (blocking upstream), then emits context on Out. Use for rate limiting
+          or adding pauses between operations.
+        name: delay
+        tags:
+        - SDK
+      - description: Flow Telemetry
+        info: 'Reads the platform''s own execution traces, so a flow can inspect how
+          flows are running. Without a traceId it lists runs in the window (id, span
+          count, error count, duration) — set errorsOnly to find failures. With a
+          traceId it returns that run''s hops, each naming the source and target port,
+          which is how you find WHERE a run broke. Needs the project''s resource name.
+          Works on any install: the traces come from the otel-collector the operator
+          already deploys, with no Prometheus or external backend involved. Pair it
+          with an LLM to diagnose a failing automation, or with a cron to report what
+          broke overnight.'
+        name: flow_telemetry
+        tags:
+        - SDK
+        - Observability
+        - Agent
+      - description: Group By
+        info: 'Groups an array of items by a specified field path. Input: items array
+          + groupByPath (e.g., ''labels.app''). Output: array of groups sorted by
+          key, each with key, items, and count.'
+        name: group_by
+        tags:
+        - SDK
+        - Array
+        - Aggregate
+      - description: Inject
+        info: Injects stored configuration into passing messages. Send config once,
+          then every message passing through gets it attached. Config persists across
+          pod restarts via metadata.
+        name: inject
+        tags:
+        - Data
+        - Config
+        - Enrich
+      - description: Key-Value Store
+        info: Key-value store backed by TinyNode metadata via the SDK State primitive.
+          Stores documents with a configurable schema and primary key. Supports JSONPath
+          queries. Multi-replica safe — all common-module replicas observe the same
+          store via the K8s watch.
+        name: kv
+        tags:
+        - KV
+        - Storage
+        - Data
+      - description: Modify
+        info: Data transformer for connecting output back to input on the SAME node
+          (e.g., http_server request→response loops). AVOID using modify between DIFFERENT
+          nodes - configure data mapping directly on the edge instead. Edge configuration
+          can set literal values and map fields without needing modify in between.
+        name: transform
+        tags:
+        - SDK
+      - description: Retry
+        info: 'Explicit retry supervisor with bounded attempts and configurable backoff.
+          Pairs with the error port of any component that emits the canonical module.ErrorMessage
+          shape {context, error, retryable} (build it with module.NewError; mark transient
+          failures with module.Retryable). Any conforming component works — llm_*,
+          http_request, and any third-party module that uses the SDK error contract.
+          Stateless: attempt count rides in the payload, so the same component can
+          supervise many concurrent flows without cross-talk.'
+        name: retry
+        tags:
+        - SDK
+        - Resilience
+        - Backoff
+      - description: Router
+        info: 'Conditional message router. Configure routes via settings (e.g., routes=["POST",
+          "OTHER"]). Output ports are named out_<lowercase(route)> (e.g., out_post,
+          out_other). Input: context (data to forward) + conditions array (each with
+          route name and boolean). Routes context to FIRST condition where condition=true.
+          If NO condition is true: with enableDefaultPort=true, routes to ''default''
+          port (leave unwired to silently drop); with enableDefaultPort=false, returns
+          an error to the caller. Prefer enableDefaultPort=true when unmatched messages
+          should be ignored. Each out_<route> emits the routed message under `context`
+          — a downstream edge reads `$.context.<field>`.'
+        name: router
+        tags:
+        - SDK
+      - description: Start Run & Reply
+        info: Starts a run and immediately returns its id, so a caller — like an HTTP
+          request — gets an instant reply while the work keeps going. Send your payload
+          in on In; wire Started back to your reply (e.g. an HTTP Response) to hand
+          back the run id; everything after Out runs as a run you can watch and retry.
+        name: run_start
+        tags:
+        - run
+        - reply
+      - description: Run Status
+        info: 'Checks a run''s progress by id: whether the run is known (found), complete,
+          or failed, how many steps are still pending, and the per-step details. Pair
+          with Start Run & Reply behind an HTTP request for instant-reply-then-check.'
+        name: run_status
+        tags:
+        - run
+        - status
+      - description: Signal
+        info: 'Flow trigger. Click Send to emit the configured context on Out and
+          kick off the flow. Fire-and-forget: it emits once and returns — there is
+          no running state and no Reset (the distributed runtime can''t cancel downstream
+          work by context). To stop something the flow started, wire a Stop-capable
+          component downstream (e.g. http_server''s Stop port). Use as an entry point.'
+        name: signal
+        tags:
+        - SDK
+      - description: Split Array
+        info: 'Array iterator. Input: context + array. Emits one message per array
+          element on Out, each containing {context, item}. Elements are processed
+          sequentially - next item sent after previous Out completes. Use to process
+          lists item by item.'
+        name: array_split
+        tags:
+        - SDK
+        - ARRAY
+      - description: Ticker
+        info: Periodic emitter. Click Start to begin emitting context on Out. Waits
+          for Out port to complete, then waits [delay] ms before next emit. Click
+          Stop to pause. Survives pod restarts via metadata persistence.
+        name: ticker
+        tags:
+        - SDK
       image: ghcr.io/tiny-systems/common-module:0.7.25
       version: 0.7.25
   communication-module:
@@ -17,6 +202,38 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: SMTP Email Sender
+        info: Sends email using SMTP protocol
+        name: smtp_send
+        tags:
+        - Email
+        - SMTP
+      - description: Slack Command
+        info: Receives and parses Slack slash commands. Connect to HTTP Server to
+          receive webhooks. Verifies request signature and outputs parsed command
+          for routing.
+        name: slack_command
+        tags:
+        - Slack
+        - ChatOps
+        - Webhook
+      - description: Slack Interaction
+        info: Receives and parses Slack Block Kit interaction payloads (button clicks,
+          menu selections). Connect to HTTP Server to receive webhooks. Verifies request
+          signature and outputs parsed interaction for routing.
+        name: slack_interaction
+        tags:
+        - Slack
+        - ChatOps
+        - Webhook
+        - Block Kit
+      - description: Slack Channel Sender
+        info: Sends messages to slack channel
+        name: slack_send
+        tags:
+        - Slack
+        - IM
       image: ghcr.io/tiny-systems/communication-module:0.3.12
       version: 0.3.12
   crypto-module:
@@ -26,6 +243,16 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Certificate Generator
+        info: Generate a self-signed TLS certificate with optional SANs. Use for K8s
+          admission webhooks, internal HTTPS servers, or any TLS endpoint.
+        name: cert_generate
+        tags:
+        - TLS
+        - Certificate
+        - Crypto
+        - Webhook
       image: ghcr.io/tiny-systems/crypto-module:0.3.12
       version: 0.3.12
   database-module:
@@ -35,6 +262,76 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Postgres Exec
+        info: Executes INSERT/UPDATE/DELETE against Postgres with positional parameters.
+          Connection pool is cached per DSN across calls.
+        name: postgres_exec
+        tags:
+        - Postgres
+        - SQL
+        - DB
+      - description: Postgres Query
+        info: Runs SELECT against Postgres and returns rows as a list of objects keyed
+          by column name. Configure expected row shape in settings so downstream edges
+          can navigate the result. Connection pool is cached per DSN.
+        name: postgres_query
+        tags:
+        - Postgres
+        - SQL
+        - DB
+      - description: Redis Dedup
+        info: Atomic 'first seen' check via SET NX EX. Routes new IDs to the New port
+          and duplicates to the Seen port. Redis client is cached per URL across calls.
+        name: redis_dedup
+        tags:
+        - Redis
+        - Dedup
+        - DB
+      - description: Redis Get
+        info: Reads a key from Redis. Emits found=false with empty value when the
+          key does not exist; the error port is reserved for actual Redis failures.
+        name: redis_get
+        tags:
+        - Redis
+        - DB
+      - description: Redis Set
+        info: Sets a key in Redis. Optional TTL via ttlSeconds (0 = no expiry). Optional
+          NX (set only if key does not already exist).
+        name: redis_set
+        tags:
+        - Redis
+        - DB
+      - description: Vector Search
+        info: kNN over a pgvector column. Returns the top-K nearest rows by configurable
+          distance metric, with a normalised score in [0,1]. Optional JSONB metadata
+          filter restricts the search. Pair with vector_upsert to build a RAG store
+          — on the zero-config bundle a query before anything is stored returns an
+          empty result (not an error), so the question path answers gracefully on
+          an empty memory.
+        name: vector_search
+        tags:
+        - Vectors
+        - Postgres
+        - pgvector
+        - RAG
+        - DB
+        - kNN
+      - description: Vector Upsert
+        info: 'Writes an embedding row into a pgvector table. INSERT ... ON CONFLICT
+          (id) DO UPDATE — existing rows are overwritten. Zero-config on the in-cluster
+          bundle: leave DSN empty and the table is created automatically on first
+          write (vector dimension inferred from the embedding), and an empty id is
+          auto-generated — so wire embed_text.embedding straight into this node''s
+          embedding with NO id-generating node in between. Only an explicit external
+          DSN requires you to pre-create the table.'
+        name: vector_upsert
+        tags:
+        - Vectors
+        - Postgres
+        - pgvector
+        - RAG
+        - DB
       image: ghcr.io/tiny-systems/database-module:0.6.11
       version: 0.6.11
   distribution-module:
@@ -44,6 +341,28 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Registry Catalog
+        info: List all repositories and their tags from a container registry. Supports
+          Docker Hub, GHCR, private registries, and any OCI-compliant registry. Use
+          to discover images for replication or monitoring.
+        name: registry_catalog
+        tags:
+        - OCI
+        - Registry
+        - Container
+        - Catalog
+      - description: Registry Copy
+        info: Copy a container image from one registry to another. Supports auth via
+          dockerConfigJSON (pass regcred secret content through edges). Set insecure=true
+          when target has no TLS.
+        name: registry_copy
+        tags:
+        - OCI
+        - Registry
+        - Container
+        - Copy
+        - Replicate
       image: ghcr.io/tiny-systems/distribution-module:0.10.12
       version: 0.10.12
   embedding-module:
@@ -53,6 +372,18 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Embed Text
+        info: Calls a HuggingFace text-embeddings-inference (TEI) endpoint and emits
+          the dense embedding vector. With the tei bundle enabled on install the TEI
+          service lives in-cluster at http://<release>-tei:80 and TEI_URL is wired
+          automatically. Override the URL via settings.baseURL for external endpoints.
+        name: embed_text
+        tags:
+        - Embeddings
+        - TEI
+        - Vectors
+        - RAG
       image: ghcr.io/tiny-systems/embedding-module:0.0.17
       version: 0.0.17
   encoding-module:
@@ -62,6 +393,52 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Go Template Engine
+        info: Render templates using text/template standard package. Supports layouts
+          and partials. Output is not HTML-escaped, suitable for JSON, plain text,
+          and other formats.
+        name: go_template
+        tags:
+        - html
+        - template
+        - engine
+      - description: JSON Decoder
+        info: 'Parses a JSON string into data the rest of the flow can read. SET THE
+          `decoded` SETTING to an example of the JSON you expect — a string has no
+          shape, so without one every downstream edge is unverifiable: an expression
+          like {{$.decoded.user.id}} is accepted when the flow is built and resolves
+          to null at runtime. With an example, the same mistake is caught immediately.
+          Only the shape matters, not the values; one representative object is enough,
+          and for a list one representative element. When the payload carries a list
+          of items, wire array_split after this so each item arrives as its own message
+          instead of every downstream node looping. Some senders report that they
+          truncated a batch, in a field alongside it. Include that field in the example
+          and check it, or a batch that silently dropped items reads as the complete
+          set.'
+        name: json_decode
+        tags:
+        - json
+      - description: JSON Encoder
+        info: Encodes input document with JSON
+        name: json_encode
+        tags:
+        - json
+      - description: JWT Encoder
+        info: Generates JWT token
+        name: jwt_encode
+        tags:
+        - jwt
+      - description: JWT Decoder
+        info: Verifies and decodes JWT token
+        name: jwt_decode
+        tags:
+        - jwt
+      - description: XML Encoder
+        info: Encodes input document with XML
+        name: xml_encode
+        tags:
+        - xml
       image: ghcr.io/tiny-systems/encoding-module:0.6.10
       version: 0.6.10
   git-module:
@@ -71,6 +448,13 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Echo
+        info: Sends the same message as it receives
+        name: echo
+        tags:
+        - Echo
+        - Demo
       image: ghcr.io/tiny-systems/git-module:0.2.6
       version: 0.2.6
   googleapis-module:
@@ -80,6 +464,106 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Exchange Auth Code
+        info: Exchanges Auth code to Auth token
+        name: oauth_code_exchange
+        tags:
+        - google
+        - auth
+      - description: Get Auth URL
+        info: Gets Auth URL which later may be used fot auth redirect
+        name: oauth_url_get
+        tags:
+        - google
+        - auth
+      - description: Stop Calendar Channel
+        info: Stop calendar watcher
+        name: calendar_watch_stop
+        tags:
+        - Google
+        - Calendar
+        - Watch
+        - Stop
+      - description: Watch Calendar Channel
+        info: Register calendar watcher
+        name: calendar_watch
+        tags:
+        - Google
+        - Calendar
+        - Watch
+      - description: Get Calendar list
+        info: Gets list of calendars
+        name: calendar_list
+        tags:
+        - google
+        - calendar
+        - auth
+      - description: Calendar Get Events
+        info: Calendar Get Events
+        name: calendar_events_get
+        tags:
+        - Google
+        - Calendar
+      - description: Response to event
+        info: Response to calendar event
+        name: calendar_event_respond
+        tags:
+        - google
+        - calendar
+        - auth
+      - description: Google API Client
+        info: Universal Google API client. Select any Google API service and method
+          from the discovery directory. Dynamically generates request/response schemas
+          based on the official API specification. Supports all 400+ Google APIs.
+        name: google_api_call
+        tags:
+        - Google
+        - API
+        - REST
+        - Universal
+      - description: Firestore Create Record
+        info: Adds document if refID is empty, updates if it's not
+        name: firestore_create_doc
+        tags:
+        - google
+        - firestore
+        - db
+      - description: Firestore Delete Document
+        info: Deletes document from a collection
+        name: firestore_delete_doc
+        tags:
+        - google
+        - firestore
+        - db
+      - description: Firestore Get Documents
+        info: Gets documents from a collection
+        name: firestore_get_docs
+        tags:
+        - google
+        - firestore
+        - db
+      - description: Firestore Listen Collection
+        info: Listens to changes of the collection
+        name: firestore_listen_collection
+        tags:
+        - google
+        - firestore
+        - db
+      - description: Firestore Update Document Fields
+        info: Updates fields in the existing record
+        name: firestore_update_doc_field
+        tags:
+        - google
+        - firestore
+        - db
+      - description: Firestore Update Document
+        info: Updates existing record in a collection
+        name: firestore_update_doc
+        tags:
+        - google
+        - firestore
+        - db
       image: ghcr.io/tiny-systems/googleapis-module:0.3.12
       version: 0.3.12
   grpc-module:
@@ -89,6 +573,13 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: gRPC request
+        info: Sends grpc request
+        name: grpc_call
+        tags:
+        - grpc
+        - client
       image: ghcr.io/tiny-systems/grpc-module:0.4.13
       version: 0.4.13
   http-module:
@@ -98,6 +589,72 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Basic Auth Headers Parser
+        info: 'Extracts Basic Auth credentials from HTTP headers. In port receives:
+          context + headers array. Out port always emits: {context, found, user, password}.
+          If Authorization header with ''Basic'' scheme found, decodes base64 and
+          sets found=true with user/password. Otherwise found=false.'
+        name: http_auth_parse
+        tags:
+        - HTTP
+        - Auth
+      - description: HTTP Client
+        info: 'Outbound HTTP request maker. Request port receives: context, method,
+          timeout, URL, headers, contentType, body. Blocks until HTTP response received.
+          On success (status < 400): emits context + response on Response port. On
+          failure or status >= 400: returns error, or if enableErrorPort=true in settings,
+          emits on Error port instead.'
+        name: http_request
+        tags:
+        - HTTP
+        - Client
+      - description: LogQL Query
+        info: 'Searches Loki for log lines across every pod at once, which is what
+          pod_logs_get cannot do — it needs an exact pod name. Returns each line with
+          its stream labels, so an agent can say which pod and namespace produced
+          it. The query needs a stream selector in braces: {namespace="prod"} |= "error".
+          Addressed by URL, so an in-cluster Loki and Grafana Cloud work the same
+          way; set the tenant header for multi-tenant installs. Give the credential
+          per request from the trigger widget rather than storing it in the flow.
+          Check truncated before concluding anything — a capped sample is not the
+          whole picture.'
+        name: logql_query
+        tags:
+        - Observability
+        - Logs
+        - Agent
+      - description: PromQL Query
+        info: Runs a PromQL query against any Prometheus-compatible API and returns
+          the matching series with their labels. Set rangeMinutes to query a window
+          instead of an instant — that is what shows a trend rather than a single
+          number. Addressed by URL, so it works with an in-cluster Prometheus as well
+          as Grafana Cloud, Amazon Managed Prometheus, Thanos, Mimir or VictoriaMetrics;
+          set the tenant header for the multi-tenant ones. Give the credential per
+          request from the trigger widget rather than storing it in the flow. A malformed
+          query is permanent and will not be retried; an unreachable or overloaded
+          backend is retryable.
+        name: promql_query
+        tags:
+        - Observability
+        - Metrics
+        - Agent
+      - description: HTTP Server
+        info: HTTP request handler. The server does NOT run until a message arrives
+          on the Start port — wire a signal (or cron) into Start to launch it (a cron
+          would re-launch on every tick, so prefer signal for a long-running server).
+          On start it exposes a public URL; read that URL from the _control port's
+          ListenAddr (or enable the status port) — never guess the address. Each incoming
+          HTTP request emits on Request port. Wire Request to processing logic, then
+          wire result to Response port with statusCode (required), contentType (required),
+          headers, body. To stop the server, enable the Stop port in settings and
+          send it any message (context cancellation alone will NOT stop it — the runtime
+          is distributed and durable).
+        name: http_server
+        tags:
+        - HTTP
+        - Server
+        - sync_rpc
       image: ghcr.io/tiny-systems/http-module:0.5.37
       values: |
         rbac:
@@ -133,6 +690,25 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: JS Eval
+        info: 'Escape hatch: run arbitrary logic inline when no typed component does
+          what you need — reshape data, branch, compute, glue a flow together. No
+          compile step, runs instantly (prefer this over wasm_eval for interactive
+          work). JavaScript evaluation (ECMAScript 5.1 + ESM imports). Script must
+          export a default function: export default function(inputData) { return {
+          result: inputData.value * 2 }; }. The function receives inputData as its
+          only argument; the return value becomes outputData on the response port.
+          Context is NOT available inside the script — it passes through automatically
+          from request to response. Define settings.inputData (example + schema of
+          the script''s argument) and settings.outputData (example + schema of the
+          script''s return) so the validator can check incoming and outgoing edges
+          without running the flow.'
+        name: js_eval
+        tags:
+        - js
+        - javascript
+        - engine
       image: ghcr.io/tiny-systems/js-module:0.3.16
       version: 0.3.16
   kubernetes-module:
@@ -142,6 +718,207 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: ConfigMap Patch
+        info: 'Set or remove a key in a Kubernetes ConfigMap. On set: creates the
+          ConfigMap if it doesn''t exist, or upserts the key. On remove: deletes the
+          key from the ConfigMap data.'
+        name: configmap_patch
+        tags:
+        - Kubernetes
+        - ConfigMap
+        - Configuration
+      - description: Custom Resource List
+        info: Lists any Kubernetes resource by API version and kind. Works with built-in
+          resources (Pods, Deployments) and custom resources (Certificates, VirtualServices).
+          Returns name, namespace, labels, spec, and status for each item.
+        name: custom_resource_list
+        tags:
+        - Kubernetes
+        - CRD
+        - Custom Resource
+        - List
+      - description: DaemonSet List
+        info: Lists Kubernetes DaemonSets with scheduling status and health information.
+        name: daemonset_list
+        tags:
+        - Kubernetes
+        - DaemonSets
+        - List
+      - description: Deployment List
+        info: Lists Kubernetes Deployments with replica status, conditions, and health
+          information.
+        name: deployment_list
+        tags:
+        - Kubernetes
+        - Deployments
+        - List
+      - description: Deployment Scale
+        info: Scale a Kubernetes Deployment to a specified replica count.
+        name: deployment_scale
+        tags:
+        - Kubernetes
+        - Deployments
+        - Scale
+      - description: Deployment Update
+        info: Update a Kubernetes Deployment's images, environment variables, resources,
+          replicas, and metadata.
+        name: deployment_update
+        tags:
+        - Kubernetes
+        - Deployments
+        - Update
+      - description: Event Watcher
+        info: Watch Kubernetes Events for warnings and errors. Use to detect ImagePullBackOff,
+          CrashLoopBackOff, scheduling failures, and other cluster issues.
+        name: event_watch
+        tags:
+        - Kubernetes
+        - Events
+        - Alerts
+        - Monitoring
+      - description: Pod Create
+        info: Create a Kubernetes Pod. Use to run one-off tasks, test image pulls,
+          or spawn workers. Set command to ['true'] and restartPolicy to Never for
+          a quick image pull test.
+        name: pod_create
+        tags:
+        - Kubernetes
+        - Pods
+        - Create
+      - description: Pod Delete
+        info: Delete a Kubernetes Pod by name. Useful for forcing pod restart or cleanup.
+        name: pod_delete
+        tags:
+        - Kubernetes
+        - Pods
+        - Delete
+      - description: Pod List
+        info: Lists Kubernetes Pods with container statuses, phases, and problem detection.
+        name: pod_list
+        tags:
+        - Kubernetes
+        - Pods
+        - List
+      - description: Pod Logs
+        info: Get logs from a specific pod by exact name. Use pod_list to find pods
+          first if needed.
+        name: pod_logs_get
+        tags:
+        - Kubernetes
+        - Pods
+        - Logs
+      - description: Pod Log Watcher
+        info: Watch pod logs in real-time for keyword matches. Streams logs from all
+          pods matching namespace and label filters, emits events on match. Discovers
+          new pods every 30s and reconnects on stream interruption.
+        name: pod_logs_watch
+        tags:
+        - Kubernetes
+        - Pods
+        - Logs
+        - Watch
+        - Monitoring
+      - description: Pod Status
+        info: Get status of pods matching a label selector. Returns pod count, health
+          summary, and individual pod details.
+        name: pod_status_get
+        tags:
+        - Kubernetes
+        - ChatOps
+        - Pods
+        - Status
+      - description: Pod Update
+        info: 'Update a Kubernetes Pod''s labels and annotations. Note: Pod spec cannot
+          be modified after creation.'
+        name: pod_update
+        tags:
+        - Kubernetes
+        - Pods
+        - Update
+      - description: Pod Watcher
+        info: Watch Kubernetes Pods for status changes. Emits typed events with pod
+          phase, container states, and problem detection.
+        name: pod_watch
+        tags:
+        - Kubernetes
+        - Pods
+        - Watch
+        - Monitoring
+      - description: Sandbox Run
+        info: 'Runs a script in a throwaway Kubernetes Job and returns its output
+          and exit code. Built for code an agent wrote: the container runs as non-root
+          with a read-only root filesystem, no service-account token, dropped capabilities,
+          and CPU/memory limits, and is deleted after it finishes. A script that exits
+          non-zero is a normal Result with that exit code, not a flow failure — only
+          infrastructure problems reach the Error port. Blocks until the script finishes,
+          so keep it short; the timeout is capped at 240s. The script is passed to
+          the interpreter as an argument, so choose an image that contains it (python:3.12-slim,
+          node:22-alpine, busybox). Nothing restricts network egress by default —
+          run it in a namespace with a restrictive NetworkPolicy if the script must
+          not reach the cluster.'
+        name: sandbox_run
+        tags:
+        - Kubernetes
+        - Sandbox
+        - Agent
+      - description: Secret Get
+        info: Read a Kubernetes Secret by name. Returns decoded string data. Use to
+          read docker-registry secrets (regcred), TLS certs, or any opaque secret.
+          Specify key to get a single value.
+        name: secret_get
+        tags:
+        - Kubernetes
+        - Secret
+        - Configuration
+      - description: Service List
+        info: Lists Kubernetes Services with ports, selectors, and endpoint information.
+        name: service_list
+        tags:
+        - Kubernetes
+        - Services
+        - List
+      - description: Service Update
+        info: Update a Kubernetes Service's selector, ports, labels, or annotations.
+        name: service_update
+        tags:
+        - Kubernetes
+        - Services
+        - Update
+      - description: StatefulSet List
+        info: Lists Kubernetes StatefulSets with replica status, revisions, and health
+          information.
+        name: statefulset_list
+        tags:
+        - Kubernetes
+        - StatefulSets
+        - List
+      - description: Webhook Register
+        info: Register or delete a Kubernetes MutatingWebhookConfiguration. Use to
+          subscribe to cluster events at the admission level — intercept resource
+          creation/updates before they happen.
+        name: webhook_register
+        tags:
+        - Kubernetes
+        - Webhook
+        - Admission
+        - Policy
+      - description: Workload List
+        info: Lists Kubernetes workload resources (Deployments, StatefulSets, DaemonSets)
+          with optional filtering by namespace and label selector. Returns resource
+          details including name, namespace, kind, labels, replicas, and status.
+        name: workload_list
+        tags:
+        - Kubernetes
+        - Workloads
+        - List
+      - description: Workload Restart
+        info: Performs a rollout restart on a Deployment, StatefulSet, or DaemonSet
+          by name. Triggers a rolling update by setting the restart annotation.
+        name: workload_restart
+        tags:
+        - Kubernetes
+        - Restart
       image: ghcr.io/tiny-systems/kubernetes-module:0.8.12
       values: |
         rbac:
@@ -229,6 +1006,96 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: LLM Chat
+        info: 'Stateless multi-turn conversation primitive. Caller supplies the full
+          Messages history per call; component makes the API call and emits the updated
+          history (with the assistant turn appended) on Response.Messages. Persist
+          via document_store or kv around llm_chat: load → llm_chat → save. Defaults
+          to Anthropic''s Messages API; switch Provider to ''openai'' for OpenAI Chat
+          Completions or any OpenAI-compatible endpoint (Ollama, vLLM, OpenRouter,
+          Azure OpenAI) via BaseURL. For tool-using agents, llm_tools is the right
+          primitive; llm_chat is for pure conversation. Caches the system prompt when
+          CacheSystem=true (Anthropic only) so long system prompts amortise across
+          turns.'
+        name: llm_chat
+        tags:
+        - LLM
+        - Anthropic
+        - OpenAI
+        - Chat
+        - Conversation
+      - description: LLM Complete
+        info: Single-turn completion. Defaults to Anthropic's Messages API (with prompt
+          caching on the system prompt); switch Provider to 'openai' for OpenAI Chat
+          Completions or any OpenAI-compatible endpoint (Ollama, vLLM, OpenRouter,
+          Azure OpenAI) via BaseURL. Emits text, model, usage, and stop reason on
+          success; routes 429/529/5xx errors with retryable=true so upstream can decide
+          whether to retry.
+        name: llm_complete
+        tags:
+        - LLM
+        - Anthropic
+        - OpenAI
+        - Claude
+      - description: LLM Router
+        info: Route a message to one of N output ports based on LLM judgement. Configure
+          Settings.Routes with {name, description} pairs — the model picks the best
+          match per incoming message. Each route becomes an out_<lowercase(name)>
+          output port. When EnableDefaultPort is true and confidence is below ConfidenceThreshold,
+          routes to 'default'. Use for fuzzy intent classification, ticket triage,
+          content moderation — anywhere boolean conditions would be too many to enumerate.
+          The reasoning + confidence land in trace span attributes for observability.
+          Output ports emit Context only — same shape as the deterministic router
+          so downstream edges treat both identically.
+        name: llm_router
+        tags:
+        - LLM
+        - Anthropic
+        - Router
+        - Classify
+      - description: LLM Tools
+        info: 'ReAct / function-calling primitive. Declare tools in Settings; each
+          becomes an out_<toolname> source port emitting {toolUseId, input, messages}
+          when the model picks it. Multi-provider — Anthropic Messages tool_use (default)
+          or OpenAI Chat Completions function calling via Provider=openai; BaseURL
+          targets any OpenAI-compatible endpoint (Ollama, vLLM, OpenRouter). Component
+          is stateless: caller supplies the full Messages history. To build a ReAct
+          loop, wire out_<tool> → handler → another llm_tools.request with the previous
+          response''s Messages plus a {role: tool, toolCallId, content} entry. Loop
+          until the response port fires.'
+        name: llm_tools
+        tags:
+        - LLM
+        - Anthropic
+        - OpenAI
+        - Tools
+        - ReAct
+        - Agent
+      - description: MCP Call Tool
+        info: 'Invokes a tool on a remote MCP server. Request takes {tool, arguments};
+          Result emits {text, structured, isError} plus the context unchanged. To
+          use remote tools in a ReAct loop: declare them in llm_tools'' Tools setting
+          (discover them with mcp_tools), wire out_<tool> here mapping tool and {{$.input}}
+          to arguments, then fold Result.text back into llm_tools.request as a {role:
+          tool, toolCallId, content} message. A tool that reports its own failure
+          arrives on Result with isError=true; transport failures go to the Error
+          port and are marked retryable.'
+        name: mcp_call
+        tags:
+        - MCP
+        - Agent
+      - description: MCP Discover Tools
+        info: Lists the tools a remote MCP server offers. Emits them in llm_tools'
+          declaration shape ({name, description, inputSchema}) so they can be copied
+          into that component's Tools setting — llm_tools needs its tools declared
+          in settings to derive out_<tool> ports, so discovery is a build-time step.
+          Use mcp_call to actually invoke a tool. Provide the bearer token per-request
+          rather than in settings.
+        name: mcp_tools
+        tags:
+        - MCP
+        - Agent
       image: ghcr.io/tiny-systems/llm-module:0.10.17
       version: 0.10.17
   store-module:
@@ -238,6 +1105,22 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: Document Store
+        info: Embedded key/value store backed by bbolt + PVC. Four operation ports
+          (put, get, delete, find) each with a matching result port. Use as the storage
+          layer for chat history, agent scratchpads, intermediate flow state — anywhere
+          SDK State's 900KB cap is too tight. Settings.Collections declares named
+          buckets so typo'd collection names fail at config time. Single-replica only
+          (bbolt locks the file). For HA persistence use postgres_* or redis_* from
+          database-module-v0.
+        name: document_store
+        tags:
+        - Store
+        - KV
+        - Persistence
+        - bbolt
+        - Embedded
       image: ghcr.io/tiny-systems/store-module:0.1.14
       version: 0.1.14
   wasm-module:
@@ -247,5 +1130,26 @@ modules:
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
+      components:
+      - description: WASM Eval
+        info: 'Escape hatch for PRODUCED agents: run arbitrary compiled logic inline
+          when no typed component fits, in a sandbox. Fast per-request once compiled
+          — but a cold compile runs into minutes, so for quick interactive work prefer
+          js_eval (no compile step). Compile and run a user-supplied program as WebAssembly
+          per incoming request. Write source in Settings.Source.Content (TinyGo for
+          now — read JSON from os.Stdin, write JSON to os.Stdout). Declare Settings.inputData
+          and Settings.outputData so edges validate without scenarios. Compile errors
+          surface in node status; runtime errors route to the Error port when enabled.
+          Enable Settings.EnableStatusPort to emit lifecycle events on the Status
+          port — useful because cold compiles can run into minutes and you want to
+          know the node isn''t dead. Context passes through untouched; the wasm module
+          does not see it.'
+        name: wasm_eval
+        tags:
+        - wasm
+        - wasi
+        - tinygo
+        - eval
+        - engine
       image: ghcr.io/tiny-systems/wasm-module:0.3.13
       version: 0.3.13
