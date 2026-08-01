@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-07-31T23:27:55Z"
+generated: "2026-08-01T00:51:41Z"
 modules:
   common-module:
     category: core
@@ -193,8 +193,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.7.25
-      version: 0.7.25
+      image: ghcr.io/tiny-systems/common-module:0.7.26
+      version: 0.7.26
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -234,8 +234,8 @@ modules:
         tags:
         - Slack
         - IM
-      image: ghcr.io/tiny-systems/communication-module:0.3.12
-      version: 0.3.12
+      image: ghcr.io/tiny-systems/communication-module:0.3.13
+      version: 0.3.13
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
@@ -253,8 +253,8 @@ modules:
         - Certificate
         - Crypto
         - Webhook
-      image: ghcr.io/tiny-systems/crypto-module:0.3.12
-      version: 0.3.12
+      image: ghcr.io/tiny-systems/crypto-module:0.3.13
+      version: 0.3.13
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
@@ -332,8 +332,8 @@ modules:
         - pgvector
         - RAG
         - DB
-      image: ghcr.io/tiny-systems/database-module:0.6.11
-      version: 0.6.11
+      image: ghcr.io/tiny-systems/database-module:0.6.12
+      version: 0.6.12
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
@@ -363,8 +363,8 @@ modules:
         - Container
         - Copy
         - Replicate
-      image: ghcr.io/tiny-systems/distribution-module:0.10.12
-      version: 0.10.12
+      image: ghcr.io/tiny-systems/distribution-module:0.10.13
+      version: 0.10.13
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
@@ -384,8 +384,8 @@ modules:
         - TEI
         - Vectors
         - RAG
-      image: ghcr.io/tiny-systems/embedding-module:0.0.17
-      version: 0.0.17
+      image: ghcr.io/tiny-systems/embedding-module:0.0.18
+      version: 0.0.18
   encoding-module:
     category: core
     description: Encoding — JSON, XML, JWT, and Go templates
@@ -439,8 +439,8 @@ modules:
         name: xml_encode
         tags:
         - xml
-      image: ghcr.io/tiny-systems/encoding-module:0.6.10
-      version: 0.6.10
+      image: ghcr.io/tiny-systems/encoding-module:0.6.11
+      version: 0.6.11
   git-module:
     category: dev
     description: Git operations — clone, read, and commit repositories
@@ -455,8 +455,8 @@ modules:
         tags:
         - Echo
         - Demo
-      image: ghcr.io/tiny-systems/git-module:0.2.6
-      version: 0.2.6
+      image: ghcr.io/tiny-systems/git-module:0.2.7
+      version: 0.2.7
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
@@ -564,8 +564,8 @@ modules:
         - google
         - firestore
         - db
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.12
-      version: 0.3.12
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.13
+      version: 0.3.13
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
@@ -580,8 +580,8 @@ modules:
         tags:
         - grpc
         - client
-      image: ghcr.io/tiny-systems/grpc-module:0.4.13
-      version: 0.4.13
+      image: ghcr.io/tiny-systems/grpc-module:0.4.14
+      version: 0.4.14
   http-module:
     category: net
     description: HTTP client and server components
@@ -655,7 +655,7 @@ modules:
         - HTTP
         - Server
         - sync_rpc
-      image: ghcr.io/tiny-systems/http-module:0.5.37
+      image: ghcr.io/tiny-systems/http-module:0.5.38
       values: |
         rbac:
           extraRules:
@@ -681,7 +681,7 @@ modules:
             - get
             - list
             - update
-      version: 0.5.37
+      version: 0.5.38
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
@@ -709,8 +709,8 @@ modules:
         - js
         - javascript
         - engine
-      image: ghcr.io/tiny-systems/js-module:0.3.16
-      version: 0.3.16
+      image: ghcr.io/tiny-systems/js-module:0.3.17
+      version: 0.3.17
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -919,7 +919,7 @@ modules:
         tags:
         - Kubernetes
         - Restart
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.12
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.13
       values: |
         rbac:
           enableKubernetesResourceAccess: true
@@ -998,7 +998,7 @@ modules:
             - list
             - watch
             - delete
-      version: 0.8.12
+      version: 0.8.13
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
@@ -1096,8 +1096,8 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/llm-module:0.10.17
-      version: 0.10.17
+      image: ghcr.io/tiny-systems/llm-module:0.10.18
+      version: 0.10.18
   store-module:
     category: data
     description: Document store — persist and query JSON documents
@@ -1121,8 +1121,8 @@ modules:
         - Persistence
         - bbolt
         - Embedded
-      image: ghcr.io/tiny-systems/store-module:0.1.14
-      version: 0.1.14
+      image: ghcr.io/tiny-systems/store-module:0.1.15
+      version: 0.1.15
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
@@ -1151,5 +1151,5 @@ modules:
         - tinygo
         - eval
         - engine
-      image: ghcr.io/tiny-systems/wasm-module:0.3.13
-      version: 0.3.13
+      image: ghcr.io/tiny-systems/wasm-module:0.3.14
+      version: 0.3.14
