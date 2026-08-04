@@ -112,11 +112,11 @@ func (h *Component) stop(ctx context.Context, req Request) error {
 	if err != nil {
 		return fmt.Errorf("unable to retrieve calendar client: %v", err)
 	}
-	return srv.Channels.Stop(&calendar.Channel{
+	return etc.ClassifyGoogleErr(srv.Channels.Stop(&calendar.Channel{
 		Token:      req.Channel.Token,
 		Id:         req.Channel.ID,
 		ResourceId: req.Channel.ResourceId,
-	}).Do()
+	}).Do())
 }
 
 func (h *Component) Ports() []module.Port {

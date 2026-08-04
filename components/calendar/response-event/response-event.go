@@ -109,7 +109,7 @@ func (c *Component) responseEvent(ctx context.Context, req Request) error {
 
 	event, err := srv.Events.Get(req.CalendarID, req.EventID).Context(ctx).Do()
 	if err != nil {
-		return fmt.Errorf("unable to retrieve event: %v", err)
+		return etc.ClassifyGoogleErr(fmt.Errorf("unable to retrieve event: %w", err))
 	}
 	//
 
@@ -122,7 +122,7 @@ func (c *Component) responseEvent(ctx context.Context, req Request) error {
 
 	_, err = srv.Events.Update(req.CalendarID, req.EventID, event).Context(ctx).Do()
 
-	return err
+	return etc.ClassifyGoogleErr(err)
 }
 
 func (g *Component) Ports() []module.Port {

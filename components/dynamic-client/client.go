@@ -13,6 +13,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/rs/zerolog/log"
+	"github.com/tiny-systems/googleapis-module/components/etc"
 	"github.com/tiny-systems/googleapis-module/pkg/discovery"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
@@ -389,7 +390,7 @@ func (c *Component) buildSchemas(ctx context.Context, serviceID, methodName stri
 func (c *Component) executeRequest(ctx context.Context, serviceID, methodName string, req Request) (*Response, error) {
 	api, err := c.discoveryClient.GetAPI(ctx, serviceID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get API spec: %w", err)
+		return nil, etc.ClassifyGoogleErr(fmt.Errorf("failed to get API spec: %w", err))
 	}
 
 	// Find the method
@@ -516,14 +517,14 @@ func (c *Component) executeRequest(ctx context.Context, serviceID, methodName st
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, etc.ClassifyGoogleErr(fmt.Errorf("request failed: %w", err))
 	}
 	defer resp.Body.Close()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, etc.ClassifyGoogleErr(fmt.Errorf("failed to read response: %w", err))
 	}
 
 	// Parse response
@@ -547,7 +548,11 @@ func (c *Component) executeRequest(ctx context.Context, serviceID, methodName st
 
 	// Check for error status
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error %d: %v", resp.StatusCode, bodyData)
+		apiErr := fmt.Errorf("API error %d: %v", resp.StatusCode, bodyData)
+		if etc.RetryableHTTPStatus(resp.StatusCode) {
+			apiErr = module.Retryable(apiErr)
+		}
+		return nil, apiErr
 	}
 
 	_ = foundMethod // silence unused warning

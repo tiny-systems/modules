@@ -134,7 +134,7 @@ func (g *Component) Handle(ctx context.Context, output module.Handler, port stri
 			break
 		}
 		if err != nil {
-			return module.Fail(err)
+			return module.Fail(etc.ClassifyGoogleErr(err))
 		}
 		if doc.Ref == nil {
 			continue

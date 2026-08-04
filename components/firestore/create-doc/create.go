@@ -110,6 +110,7 @@ func (g *Component) Handle(ctx context.Context, output module.Handler, port stri
 	} else {
 		ref, _, err = col.Add(ctx, req.Document)
 	}
+	err = etc.ClassifyGoogleErr(err)
 
 	if err != nil {
 		// check err port

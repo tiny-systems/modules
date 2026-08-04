@@ -104,6 +104,7 @@ func (g *Component) Handle(ctx context.Context, output module.Handler, port stri
 	ref := db.Collection(req.Collection).Doc(req.RefID)
 	//
 	_, err = ref.Set(ctx, req.Document)
+	err = etc.ClassifyGoogleErr(err)
 	if err != nil {
 		// check err port
 		if !g.settings.EnableErrorPort {

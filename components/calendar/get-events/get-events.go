@@ -138,7 +138,7 @@ func (c *Component) getEvents(ctx context.Context, req Request) (*calendar.Event
 
 	events, err := call.Do()
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve user's events: %v", err)
+		return nil, etc.ClassifyGoogleErr(fmt.Errorf("unable to retrieve user's events: %w", err))
 	}
 
 	return events, nil

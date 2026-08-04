@@ -107,7 +107,7 @@ func (c *Component) getCalendars(ctx context.Context, req Request) ([]*calendar.
 
 	list, err := srv.CalendarList.List().Context(ctx).Do()
 	if err != nil {
-		return nil, err
+		return nil, etc.ClassifyGoogleErr(err)
 	}
 	return list.Items, nil
 }

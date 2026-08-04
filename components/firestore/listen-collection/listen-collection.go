@@ -169,7 +169,7 @@ func (g *Component) start(ctx context.Context, handler module.Handler) error {
 			return nil
 		}
 		if err != nil {
-			return fmt.Errorf("snapshots next: %w", err)
+			return etc.ClassifyGoogleErr(fmt.Errorf("snapshots next: %w", err))
 		}
 		if snap == nil {
 			continue

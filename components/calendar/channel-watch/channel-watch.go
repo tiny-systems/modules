@@ -141,13 +141,17 @@ func (h *Component) watch(ctx context.Context, req Request) (*calendar.Channel, 
 		return nil, fmt.Errorf("unable to retrieve calendar client: %v", err)
 	}
 
-	return srv.Events.Watch(req.Calendar.ID, &calendar.Channel{
+	ch, err := srv.Events.Watch(req.Calendar.ID, &calendar.Channel{
 		Type:       req.Channel.Type,
 		Address:    req.Channel.Address,
 		Token:      req.Channel.Token,
 		Id:         req.Channel.ID,
 		Expiration: req.Channel.Expiration,
 	}).Do()
+	if err != nil {
+		return nil, etc.ClassifyGoogleErr(err)
+	}
+	return ch, nil
 }
 
 func (h *Component) Ports() []module.Port {

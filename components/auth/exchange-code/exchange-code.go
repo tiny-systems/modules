@@ -66,7 +66,11 @@ func (a *Component) exchange(ctx context.Context, in Request) (*oauth2.Token, er
 	if in.RedirectURL != "" {
 		config.RedirectURL = in.RedirectURL
 	}
-	return config.Exchange(ctx, in.AuthCode)
+	token, err := config.Exchange(ctx, in.AuthCode)
+	if err != nil {
+		return nil, etc.ClassifyGoogleErr(err)
+	}
+	return token, nil
 }
 
 // OnSettings stores the component settings.

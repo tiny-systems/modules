@@ -99,6 +99,7 @@ func (g *Component) Handle(ctx context.Context, output module.Handler, port stri
 	ref := db.Collection(req.Collection)
 
 	_, err = ref.Doc(req.RefID).Delete(ctx)
+	err = etc.ClassifyGoogleErr(err)
 	if err != nil {
 		// check err port
 		if !g.settings.EnableErrorPort {

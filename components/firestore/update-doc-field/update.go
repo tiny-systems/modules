@@ -117,6 +117,7 @@ func (g *Component) Handle(ctx context.Context, output module.Handler, port stri
 		})
 	}
 	_, err = ref.Update(ctx, updates)
+	err = etc.ClassifyGoogleErr(err)
 
 	if err != nil {
 		// check err port
