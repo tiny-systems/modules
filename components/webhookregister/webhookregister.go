@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -125,7 +126,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	op := req.Operation
@@ -139,7 +140,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	case "delete":
 		return c.handleDelete(ctx, handler, k8sClient, req)
 	default:
-		return c.handleError(ctx, handler, req, fmt.Sprintf("unknown operation: %s", op))
+		return c.handleError(ctx, handler, req, fmt.Errorf("unknown operation: %s", op))
 	}
 }
 
@@ -227,7 +228,7 @@ func (c *Component) handleRegister(ctx context.Context, handler module.Handler, 
 
 	if k8serrors.IsNotFound(err) {
 		if err := k8sClient.Create(ctx, config); err != nil {
-			return c.handleError(ctx, handler, req, fmt.Sprintf("failed to create webhook: %v", err))
+			return c.handleError(ctx, handler, req, fmt.Errorf("failed to create webhook: %w", k8s.ClassifyError(err)))
 		}
 		return handler(ctx, ResultPort, Result{
 			Context:   req.Context,
@@ -239,13 +240,13 @@ func (c *Component) handleRegister(ctx context.Context, handler module.Handler, 
 	}
 
 	if err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to get webhook: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to get webhook: %w", k8s.ClassifyError(err)))
 	}
 
 	existing.Webhooks = config.Webhooks
 	existing.Labels = config.Labels
 	if err := k8sClient.Update(ctx, existing); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to update webhook: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to update webhook: %w", k8s.ClassifyError(err)))
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -272,7 +273,7 @@ func (c *Component) handleDelete(ctx context.Context, handler module.Handler, k8
 				Message:   fmt.Sprintf("MutatingWebhookConfiguration %s not found (no-op)", req.Name),
 			})
 		}
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to delete webhook: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to delete webhook: %w", k8s.ClassifyError(err)))
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -284,7 +285,7 @@ func (c *Component) handleDelete(ctx context.Context, handler module.Handler, k8
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -292,10 +293,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func (c *Component) Ports() []module.Port {

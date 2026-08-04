@@ -112,7 +112,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	restartAnnotation := map[string]string{
@@ -130,11 +130,11 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	case "DaemonSet":
 		result, err = c.restartDaemonSet(ctx, k8sClient, req.Namespace, req.Name, restartAnnotation)
 	default:
-		return c.handleError(ctx, handler, req, fmt.Sprintf("unsupported kind: %s", req.Kind))
+		return c.handleError(ctx, handler, req, fmt.Errorf("unsupported kind: %s", req.Kind))
 	}
 
 	if err != nil {
-		return c.handleError(ctx, handler, req, err.Error())
+		return c.handleError(ctx, handler, req, err)
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -146,7 +146,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 func (c *Component) restartDeployment(ctx context.Context, k8sClient client.Client, namespace, name string, annotation map[string]string) (*k8s.RestartResult, error) {
 	deployment := &appsv1.Deployment{}
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
-		return nil, fmt.Errorf("deployment not found: %w", err)
+		return nil, fmt.Errorf("deployment not found: %w", k8s.ClassifyError(err))
 	}
 
 	if deployment.Spec.Template.Annotations == nil {
@@ -157,7 +157,7 @@ func (c *Component) restartDeployment(ctx context.Context, k8sClient client.Clie
 	}
 
 	if err := k8sClient.Update(ctx, deployment); err != nil {
-		return nil, fmt.Errorf("failed to restart deployment: %w", err)
+		return nil, fmt.Errorf("failed to restart deployment: %w", k8s.ClassifyError(err))
 	}
 
 	return &k8s.RestartResult{
@@ -171,7 +171,7 @@ func (c *Component) restartDeployment(ctx context.Context, k8sClient client.Clie
 func (c *Component) restartStatefulSet(ctx context.Context, k8sClient client.Client, namespace, name string, annotation map[string]string) (*k8s.RestartResult, error) {
 	sts := &appsv1.StatefulSet{}
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, sts); err != nil {
-		return nil, fmt.Errorf("statefulset not found: %w", err)
+		return nil, fmt.Errorf("statefulset not found: %w", k8s.ClassifyError(err))
 	}
 
 	if sts.Spec.Template.Annotations == nil {
@@ -182,7 +182,7 @@ func (c *Component) restartStatefulSet(ctx context.Context, k8sClient client.Cli
 	}
 
 	if err := k8sClient.Update(ctx, sts); err != nil {
-		return nil, fmt.Errorf("failed to restart statefulset: %w", err)
+		return nil, fmt.Errorf("failed to restart statefulset: %w", k8s.ClassifyError(err))
 	}
 
 	return &k8s.RestartResult{
@@ -196,7 +196,7 @@ func (c *Component) restartStatefulSet(ctx context.Context, k8sClient client.Cli
 func (c *Component) restartDaemonSet(ctx context.Context, k8sClient client.Client, namespace, name string, annotation map[string]string) (*k8s.RestartResult, error) {
 	ds := &appsv1.DaemonSet{}
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, ds); err != nil {
-		return nil, fmt.Errorf("daemonset not found: %w", err)
+		return nil, fmt.Errorf("daemonset not found: %w", k8s.ClassifyError(err))
 	}
 
 	if ds.Spec.Template.Annotations == nil {
@@ -207,7 +207,7 @@ func (c *Component) restartDaemonSet(ctx context.Context, k8sClient client.Clien
 	}
 
 	if err := k8sClient.Update(ctx, ds); err != nil {
-		return nil, fmt.Errorf("failed to restart daemonset: %w", err)
+		return nil, fmt.Errorf("failed to restart daemonset: %w", k8s.ClassifyError(err))
 	}
 
 	return &k8s.RestartResult{
@@ -218,7 +218,7 @@ func (c *Component) restartDaemonSet(ctx context.Context, k8sClient client.Clien
 	}, nil
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -226,10 +226,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func (c *Component) Ports() []module.Port {

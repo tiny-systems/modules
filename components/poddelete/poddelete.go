@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -114,7 +115,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	pod := &corev1.Pod{
@@ -130,7 +131,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	}
 
 	if err := k8sClient.Delete(ctx, pod, deleteOpts...); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to delete pod: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to delete pod: %w", k8s.ClassifyError(err)))
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -142,7 +143,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -150,10 +151,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func (c *Component) Ports() []module.Port {

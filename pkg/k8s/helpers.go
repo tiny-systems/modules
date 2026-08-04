@@ -1,9 +1,15 @@
 package k8s
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
+
+	"github.com/tiny-systems/module/module"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // ParseLabelSelector parses a label selector string into a map
@@ -64,4 +70,35 @@ func FormatAge(d time.Duration) string {
 
 	seconds := int(d.Seconds())
 	return fmt.Sprintf("%ds", seconds)
+}
+
+// ClassifyError marks transient Kubernetes API failures with module.Retryable
+// so the runtime may re-attempt the hop, and returns everything else unchanged
+// — unmarked errors are never retried, which is the deliberate SDK default.
+//
+// Retryable: optimistic-concurrency conflicts (a Get→Update race), server-side
+// timeouts and overload (ServerTimeout, Timeout, TooManyRequests,
+// ServiceUnavailable, InternalError) and transport-level failures (connection
+// refused/reset, a timed-out or dropped connection). Permanent: NotFound,
+// Forbidden, Invalid, BadRequest and anything else a retry cannot fix.
+func ClassifyError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if apierrors.IsConflict(err) ||
+		apierrors.IsServerTimeout(err) ||
+		apierrors.IsTimeout(err) ||
+		apierrors.IsTooManyRequests(err) ||
+		apierrors.IsServiceUnavailable(err) ||
+		apierrors.IsInternalError(err) {
+		return module.Retryable(err)
+	}
+	// Transport-level failures never carry an API status: connection
+	// refused/reset and timeouts surface as net.Error (or as the API call's
+	// own context.DeadlineExceeded).
+	var netErr net.Error
+	if errors.As(err, &netErr) || errors.Is(err, context.DeadlineExceeded) {
+		return module.Retryable(err)
+	}
+	return err
 }

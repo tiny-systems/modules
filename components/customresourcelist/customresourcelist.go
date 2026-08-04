@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -129,11 +130,11 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	if req.APIVersion == "" || req.Kind == "" {
-		return c.handleError(ctx, handler, req, "apiVersion and kind are required")
+		return c.handleError(ctx, handler, req, errors.New("apiVersion and kind are required"))
 	}
 
 	gvk := schema.FromAPIVersionAndKind(req.APIVersion, req.Kind)
@@ -152,13 +153,13 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	if req.LabelSelector != "" {
 		selector, err := labels.Parse(req.LabelSelector)
 		if err != nil {
-			return c.handleError(ctx, handler, req, fmt.Sprintf("invalid label selector: %v", err))
+			return c.handleError(ctx, handler, req, fmt.Errorf("invalid label selector: %v", err))
 		}
 		listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: selector})
 	}
 
 	if err := k8sClient.List(ctx, list, listOpts...); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to list %s.%s: %v", gvk.Kind, gvk.Group, err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to list %s.%s: %w", gvk.Kind, gvk.Group, k8s.ClassifyError(err)))
 	}
 
 	items := make([]ResourceItem, 0, len(list.Items))
@@ -189,7 +190,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -197,10 +198,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func formatAge(t time.Time) string {

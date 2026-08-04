@@ -140,11 +140,11 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.logsClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	if logsClient == nil {
-		return c.handleError(ctx, handler, req, "Logs client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("Logs client not available")))
 	}
 
 	lines := req.Lines
@@ -156,7 +156,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 
 	podLogs, err := k8s.GetPodLogs(ctx, k8sClient, logsClient, req.Namespace, req.Pod, req.Container, lines)
 	if err != nil {
-		return c.handleError(ctx, handler, req, err.Error())
+		return c.handleError(ctx, handler, req, k8s.ClassifyError(err))
 	}
 
 	return handler(ctx, LogsPort, Logs{
@@ -165,7 +165,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -175,10 +175,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 		// (critical for blocking I/O patterns like HTTP Server)
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func (c *Component) Ports() []module.Port {

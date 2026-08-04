@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -288,7 +289,7 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 	watcher, err := k8sClient.Watch(watchCtx, eventList, listOpts)
 	if err != nil {
 		c.updateControl(ctx, handler, Control{Status: fmt.Sprintf("Error: %v", err)})
-		return fmt.Errorf("failed to start watch: %v", err)
+		return fmt.Errorf("failed to start watch: %w", k8s.ClassifyError(err))
 	}
 
 	// Start watch loop in goroutine

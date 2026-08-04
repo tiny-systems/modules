@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -119,7 +120,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	switch req.Operation {
@@ -128,7 +129,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	case "remove":
 		return c.handleRemove(ctx, handler, k8sClient, req)
 	default:
-		return c.handleError(ctx, handler, req, fmt.Sprintf("unknown operation: %s", req.Operation))
+		return c.handleError(ctx, handler, req, fmt.Errorf("unknown operation: %s", req.Operation))
 	}
 }
 
@@ -145,7 +146,7 @@ func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sCl
 			Data: map[string]string{req.Key: req.Value},
 		}
 		if err := k8sClient.Create(ctx, cm); err != nil {
-			return c.handleError(ctx, handler, req, fmt.Sprintf("failed to create configmap: %v", err))
+			return c.handleError(ctx, handler, req, fmt.Errorf("failed to create configmap: %w", k8s.ClassifyError(err)))
 		}
 		return handler(ctx, ResultPort, Result{
 			Context:   req.Context,
@@ -159,7 +160,7 @@ func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sCl
 	}
 
 	if err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to get configmap: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to get configmap: %w", k8s.ClassifyError(err)))
 	}
 
 	if cm.Data == nil {
@@ -168,7 +169,7 @@ func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sCl
 	cm.Data[req.Key] = req.Value
 
 	if err := k8sClient.Update(ctx, cm); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to update configmap: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to update configmap: %w", k8s.ClassifyError(err)))
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -185,7 +186,7 @@ func (c *Component) handleSet(ctx context.Context, handler module.Handler, k8sCl
 func (c *Component) handleRemove(ctx context.Context, handler module.Handler, k8sClient client.Client, req Request) module.Result {
 	cm := &corev1.ConfigMap{}
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: req.Name}, cm); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to get configmap: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to get configmap: %w", k8s.ClassifyError(err)))
 	}
 
 	if cm.Data == nil {
@@ -203,7 +204,7 @@ func (c *Component) handleRemove(ctx context.Context, handler module.Handler, k8
 	delete(cm.Data, req.Key)
 
 	if err := k8sClient.Update(ctx, cm); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to update configmap: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to update configmap: %w", k8s.ClassifyError(err)))
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -217,7 +218,7 @@ func (c *Component) handleRemove(ctx context.Context, handler module.Handler, k8
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -225,10 +226,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func (c *Component) Ports() []module.Port {

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -125,7 +126,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	// Determine which kinds to list
@@ -142,7 +143,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	if req.LabelSelector != "" {
 		selector, err := labels.Parse(req.LabelSelector)
 		if err != nil {
-			return c.handleError(ctx, handler, req, fmt.Sprintf("invalid label selector: %v", err))
+			return c.handleError(ctx, handler, req, fmt.Errorf("invalid label selector: %v", err))
 		}
 		listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: selector})
 	}
@@ -155,7 +156,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		case "Deployment":
 			deployments := &appsv1.DeploymentList{}
 			if err := k8sClient.List(ctx, deployments, listOpts...); err != nil {
-				return c.handleError(ctx, handler, req, fmt.Sprintf("failed to list deployments: %v", err))
+				return c.handleError(ctx, handler, req, fmt.Errorf("failed to list deployments: %w", k8s.ClassifyError(err)))
 			}
 			for _, d := range deployments.Items {
 				image := ""
@@ -181,7 +182,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		case "StatefulSet":
 			statefulsets := &appsv1.StatefulSetList{}
 			if err := k8sClient.List(ctx, statefulsets, listOpts...); err != nil {
-				return c.handleError(ctx, handler, req, fmt.Sprintf("failed to list statefulsets: %v", err))
+				return c.handleError(ctx, handler, req, fmt.Errorf("failed to list statefulsets: %w", k8s.ClassifyError(err)))
 			}
 			for _, s := range statefulsets.Items {
 				image := ""
@@ -207,7 +208,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		case "DaemonSet":
 			daemonsets := &appsv1.DaemonSetList{}
 			if err := k8sClient.List(ctx, daemonsets, listOpts...); err != nil {
-				return c.handleError(ctx, handler, req, fmt.Sprintf("failed to list daemonsets: %v", err))
+				return c.handleError(ctx, handler, req, fmt.Errorf("failed to list daemonsets: %w", k8s.ClassifyError(err)))
 			}
 			for _, d := range daemonsets.Items {
 				image := ""
@@ -235,7 +236,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -243,10 +244,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func formatAge(t time.Time) string {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
@@ -116,13 +117,13 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	c.k8sClientLock.RUnlock()
 
 	if k8sClient == nil {
-		return c.handleError(ctx, handler, req, "K8s client not available")
+		return c.handleError(ctx, handler, req, module.Retryable(errors.New("K8s client not available")))
 	}
 
 	// Get current pod
 	pod := &corev1.Pod{}
 	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: req.Name}, pod); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("pod not found: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("pod not found: %w", k8s.ClassifyError(err)))
 	}
 
 	// Merge labels
@@ -147,7 +148,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 
 	// Update pod
 	if err := k8sClient.Update(ctx, pod); err != nil {
-		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to update pod: %v", err))
+		return c.handleError(ctx, handler, req, fmt.Errorf("failed to update pod: %w", k8s.ClassifyError(err)))
 	}
 
 	return handler(ctx, ResultPort, Result{
@@ -161,7 +162,7 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	})
 }
 
-func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, errMsg string) module.Result {
+func (c *Component) handleError(ctx context.Context, handler module.Handler, req Request, err error) module.Result {
 	c.settingsLock.RLock()
 	enableErrorPort := c.settings.EnableErrorPort
 	c.settingsLock.RUnlock()
@@ -169,10 +170,10 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 	if enableErrorPort {
 		return handler(ctx, ErrorPort, Error{
 			Context: req.Context,
-			Error:   errMsg,
+			Error:   err.Error(),
 		})
 	}
-	return module.Fail(errors.New(errMsg))
+	return module.Fail(err)
 }
 
 func (c *Component) Ports() []module.Port {
