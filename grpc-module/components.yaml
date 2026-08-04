@@ -2,7 +2,13 @@
 # Discovery only: name/description/info/tags. Ports come from a running node.
 - name: grpc_call
   description: gRPC request
-  info: Sends grpc request
+  info: 'Calls a unary gRPC method on a remote server. Services, methods and message schemas are discovered
+    at configuration time via server reflection, so no proto files are needed — the server must have the
+    reflection service enabled. Connections use TLS with system root certificates by default; enable ''Insecure
+    mode'' in settings to talk to plaintext (non-TLS) servers. Each request can attach call metadata:
+    a Bearer Token field (sent as ''authorization: Bearer <token>'') and arbitrary key/value headers.
+    An optional Keep Alive setting sends HTTP/2 pings to hold long-lived connections open. Only unary
+    methods are supported — client, server and bidirectional streaming methods are not.'
   tags:
   - grpc
   - client

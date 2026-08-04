@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-04T20:38:13Z'
+generated: '2026-08-04T21:09:31Z'
 modules:
   common-module:
     category: core
@@ -522,13 +522,19 @@ modules:
       chartVersion: 0.2.10
       components:
       - description: gRPC request
-        info: Sends grpc request
+        info: 'Calls a unary gRPC method on a remote server. Services, methods and message schemas are discovered
+          at configuration time via server reflection, so no proto files are needed — the server must have the reflection
+          service enabled. Connections use TLS with system root certificates by default; enable ''Insecure mode''
+          in settings to talk to plaintext (non-TLS) servers. Each request can attach call metadata: a Bearer Token
+          field (sent as ''authorization: Bearer <token>'') and arbitrary key/value headers. An optional Keep Alive
+          setting sends HTTP/2 pings to hold long-lived connections open. Only unary methods are supported — client,
+          server and bidirectional streaming methods are not.'
         name: grpc_call
         tags:
         - grpc
         - client
-      image: ghcr.io/tiny-systems/grpc-module:0.4.15
-      version: 0.4.15
+      image: ghcr.io/tiny-systems/grpc-module:0.4.16
+      version: 0.4.16
   http-module:
     category: net
     description: HTTP client and server components
@@ -639,7 +645,8 @@ modules:
       - description: Custom Resource List
         info: Lists any Kubernetes resource by API version and kind. Works with built-in resources (Pods, Deployments)
           and custom resources (Certificates, VirtualServices). Returns name, namespace, labels, spec, and status
-          for each item.
+          for each item. CRDs outside the module's built-in RBAC must be granted at install time via the chart's
+          rbac.extraRules values; a 403 from this component includes the exact helm command.
         name: custom_resource_list
         tags:
         - Kubernetes
@@ -816,8 +823,8 @@ modules:
         tags:
         - Kubernetes
         - Restart
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.15
-      version: 0.8.15
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.16
+      version: 0.8.16
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling

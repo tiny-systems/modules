@@ -12,7 +12,8 @@
   description: Custom Resource List
   info: Lists any Kubernetes resource by API version and kind. Works with built-in resources (Pods, Deployments)
     and custom resources (Certificates, VirtualServices). Returns name, namespace, labels, spec, and status
-    for each item.
+    for each item. CRDs outside the module's built-in RBAC must be granted at install time via the chart's
+    rbac.extraRules values; a 403 from this component includes the exact helm command.
   tags:
   - Kubernetes
   - CRD
