@@ -50,7 +50,7 @@ func (a *Component) GetInfo() module.ComponentInfo {
 	return module.ComponentInfo{
 		Name:        ComponentName,
 		Description: "Get Auth URL",
-		Info:        "Gets Auth URL which later may be used fot auth redirect",
+		Info:        "Gets the OAuth consent URL to redirect a user to. The code returned after consent goes to oauth_code_exchange for tokens.",
 		Tags:        []string{"google", "auth"},
 	}
 }
