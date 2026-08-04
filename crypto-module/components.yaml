@@ -9,3 +9,35 @@
   - Certificate
   - Crypto
   - Webhook
+- name: hash
+  description: Hash
+  info: 'Computes a digest of a string: sha256 (default), sha512, sha1, or md5, rendered as hex (default)
+    or base64. Use it for dedup keys (hash the natural key of a record before store/compare), content
+    fingerprints (detect that a document changed), and cache keys. Set hmacKey to get the HMAC-<algorithm>
+    keyed digest instead of the plain hash — that is how you SIGN an outbound webhook payload so the receiver
+    can verify it; for verifying INBOUND webhooks use hmac_verify, which does the constant-time comparison
+    and per-provider header parsing for you. The data is digested byte-for-byte as given.'
+  tags:
+  - Hash
+  - HMAC
+  - Fingerprint
+  - Crypto
+- name: hmac_verify
+  description: HMAC Verify
+  info: 'Verifies an inbound webhook signature and emits {valid, reason} for routing. Schemes: ''github''
+    verifies the X-Hub-Signature-256 header value (''sha256=<hex>'', HMAC-SHA256 over the raw body); ''stripe''
+    verifies the Stripe-Signature header value (''t=<unix>,v1=<hex>'', HMAC-SHA256 over ''<t>.<body>'',
+    all v1 entries tried, timestamp checked against the tolerance setting — 0 disables the check); ''generic-sha256''
+    / ''generic-sha1'' verify a bare digest (hex or base64, both accepted) as sent in headers like X-Signature.
+    A signature that does not match is a NORMAL response with valid=false and a reason — route on $.valid
+    (e.g. to a 401 branch); only configuration problems (empty secret, unparseable Stripe-Signature header,
+    unknown scheme) reach the error port or fail the hop. The payload MUST be the exact raw request body
+    bytes as a string: pass the HTTP server''s raw body straight through — parsing and re-serializing
+    JSON, trimming, or re-encoding changes the bytes and verification will always fail. All comparisons
+    are constant-time.'
+  tags:
+  - Webhook
+  - HMAC
+  - Signature
+  - Security
+  - Crypto

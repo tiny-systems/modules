@@ -37,6 +37,21 @@
   - SDK
   - Agent
   - Safety
+- name: collect
+  description: Collect
+  info: 'Fan-in for map-reduce — the pair of array_split. array_split emits {context, item, index, total}
+    per element; route each item through the per-item work, then map into Item here: groupKey MUST be
+    unique per fan-out (e.g. $.context.runId — every item of one array shares it, different runs differ),
+    and index/total come straight from array_split. Items are buffered per groupKey in the node''s State,
+    so assembly survives restarts and is multi-replica safe. Once a group holds all `total` items, Response
+    emits {context, items}: items ordered by index regardless of arrival order (a duplicate index overwrites,
+    never double-counts), context taken from the group''s LAST arriving item. Groups older than timeoutSeconds
+    fail onto the Error port as {context, groupKey, received, total, error}. Expiry is passive — checked
+    when messages arrive — so an idle node holds stragglers until the next message on any group. State
+    is capped at ~900KB per node: keep buffered items small (carry IDs, not blobs) or lower maxGroups.'
+  tags:
+  - SDK
+  - ARRAY
 - name: cron
   description: Cron
   info: 'Scheduled emitter using cron expressions. Click Start to begin emitting context on Out port according
@@ -152,8 +167,11 @@
 - name: array_split
   description: Split Array
   info: 'Array iterator. Input: context + array. Emits one message per array element on Out, each containing
-    {context, item}. Elements are processed sequentially - next item sent after previous Out completes.
-    Use to process lists item by item.'
+    {context, item, index, total} — index is the element''s 0-based position, total the array length,
+    context the incoming message''s context passed through unchanged per item. Elements are processed
+    sequentially - next item sent after previous Out completes. Use to process lists item by item. For
+    map-reduce, pair with `collect`: route each item through the per-item work, map index/total (and a
+    group key unique per source message) into collect, and it reassembles the array once all items arrive.'
   tags:
   - SDK
   - ARRAY

@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-04T21:09:31Z'
+generated: '2026-08-04T22:08:50Z'
 modules:
   common-module:
     category: core
@@ -46,6 +46,21 @@ modules:
         - SDK
         - Agent
         - Safety
+      - description: Collect
+        info: 'Fan-in for map-reduce — the pair of array_split. array_split emits {context, item, index, total}
+          per element; route each item through the per-item work, then map into Item here: groupKey MUST be unique
+          per fan-out (e.g. $.context.runId — every item of one array shares it, different runs differ), and index/total
+          come straight from array_split. Items are buffered per groupKey in the node''s State, so assembly survives
+          restarts and is multi-replica safe. Once a group holds all `total` items, Response emits {context, items}:
+          items ordered by index regardless of arrival order (a duplicate index overwrites, never double-counts),
+          context taken from the group''s LAST arriving item. Groups older than timeoutSeconds fail onto the Error
+          port as {context, groupKey, received, total, error}. Expiry is passive — checked when messages arrive
+          — so an idle node holds stragglers until the next message on any group. State is capped at ~900KB per
+          node: keep buffered items small (carry IDs, not blobs) or lower maxGroups.'
+        name: collect
+        tags:
+        - SDK
+        - ARRAY
       - description: Cron
         info: 'Scheduled emitter using cron expressions. Click Start to begin emitting context on Out port according
           to the schedule. Supports standard cron syntax (minute hour day-of-month month day-of-week). Examples:
@@ -157,8 +172,11 @@ modules:
         - SDK
       - description: Split Array
         info: 'Array iterator. Input: context + array. Emits one message per array element on Out, each containing
-          {context, item}. Elements are processed sequentially - next item sent after previous Out completes. Use
-          to process lists item by item.'
+          {context, item, index, total} — index is the element''s 0-based position, total the array length, context
+          the incoming message''s context passed through unchanged per item. Elements are processed sequentially
+          - next item sent after previous Out completes. Use to process lists item by item. For map-reduce, pair
+          with `collect`: route each item through the per-item work, map index/total (and a group key unique per
+          source message) into collect, and it reassembles the array once all items arrive.'
         name: array_split
         tags:
         - SDK
@@ -169,8 +187,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.7.27
-      version: 0.7.27
+      image: ghcr.io/tiny-systems/common-module:0.8.0
+      version: 0.8.0
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -227,8 +245,39 @@ modules:
         - Certificate
         - Crypto
         - Webhook
-      image: ghcr.io/tiny-systems/crypto-module:0.3.13
-      version: 0.3.13
+      - description: Hash
+        info: 'Computes a digest of a string: sha256 (default), sha512, sha1, or md5, rendered as hex (default)
+          or base64. Use it for dedup keys (hash the natural key of a record before store/compare), content fingerprints
+          (detect that a document changed), and cache keys. Set hmacKey to get the HMAC-<algorithm> keyed digest
+          instead of the plain hash — that is how you SIGN an outbound webhook payload so the receiver can verify
+          it; for verifying INBOUND webhooks use hmac_verify, which does the constant-time comparison and per-provider
+          header parsing for you. The data is digested byte-for-byte as given.'
+        name: hash
+        tags:
+        - Hash
+        - HMAC
+        - Fingerprint
+        - Crypto
+      - description: HMAC Verify
+        info: 'Verifies an inbound webhook signature and emits {valid, reason} for routing. Schemes: ''github''
+          verifies the X-Hub-Signature-256 header value (''sha256=<hex>'', HMAC-SHA256 over the raw body); ''stripe''
+          verifies the Stripe-Signature header value (''t=<unix>,v1=<hex>'', HMAC-SHA256 over ''<t>.<body>'', all
+          v1 entries tried, timestamp checked against the tolerance setting — 0 disables the check); ''generic-sha256''
+          / ''generic-sha1'' verify a bare digest (hex or base64, both accepted) as sent in headers like X-Signature.
+          A signature that does not match is a NORMAL response with valid=false and a reason — route on $.valid
+          (e.g. to a 401 branch); only configuration problems (empty secret, unparseable Stripe-Signature header,
+          unknown scheme) reach the error port or fail the hop. The payload MUST be the exact raw request body bytes
+          as a string: pass the HTTP server''s raw body straight through — parsing and re-serializing JSON, trimming,
+          or re-encoding changes the bytes and verification will always fail. All comparisons are constant-time.'
+        name: hmac_verify
+        tags:
+        - Webhook
+        - HMAC
+        - Signature
+        - Security
+        - Crypto
+      image: ghcr.io/tiny-systems/crypto-module:0.4.0
+      version: 0.4.0
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
@@ -834,13 +883,14 @@ modules:
       chartVersion: 0.2.10
       components:
       - description: LLM Chat
-        info: 'Stateless multi-turn conversation primitive. Caller supplies the full Messages history per call;
-          component makes the API call and emits the updated history (with the assistant turn appended) on Response.Messages.
-          Persist via document_store or kv around llm_chat: load → llm_chat → save. Defaults to Anthropic''s Messages
-          API; switch Provider to ''openai'' for OpenAI Chat Completions or any OpenAI-compatible endpoint (Ollama,
-          vLLM, OpenRouter, Azure OpenAI) via BaseURL. For tool-using agents, llm_tools is the right primitive;
-          llm_chat is for pure conversation. Caches the system prompt when CacheSystem=true (Anthropic only) so
-          long system prompts amortise across turns.'
+        info: 'Stateless multi-turn conversation primitive. Caller supplies the full Messages history per  Set Output
+          JSON Schema in settings to force a schema-conforming reply on response.structured.call; component makes
+          the API call and emits the updated history (with the assistant turn appended) on Response.Messages. Persist
+          via document_store or kv around llm_chat: load → llm_chat → save. Defaults to Anthropic''s Messages API;
+          switch Provider to ''openai'' for OpenAI Chat Completions or any OpenAI-compatible endpoint (Ollama, vLLM,
+          OpenRouter, Azure OpenAI) via BaseURL. For tool-using agents, llm_tools is the right primitive; llm_chat
+          is for pure conversation. Caches the system prompt when CacheSystem=true (Anthropic only) so long system
+          prompts amortise across turns.'
         name: llm_chat
         tags:
         - LLM
@@ -849,10 +899,11 @@ modules:
         - Chat
         - Conversation
       - description: LLM Complete
-        info: Single-turn completion. Defaults to Anthropic's Messages API (with prompt caching on the system prompt);
-          switch Provider to 'openai' for OpenAI Chat Completions or any OpenAI-compatible endpoint (Ollama, vLLM,
-          OpenRouter, Azure OpenAI) via BaseURL. Emits text, model, usage, and stop reason on success; routes 429/529/5xx
-          errors with retryable=true so upstream can decide whether to retry.
+        info: 'Single-turn completion. Defaults to Anthropic''s Messages API (with prompt caching on the system
+          prompt); switch Provider to ''openai'' for OpenAI Chat Completions or any OpenAI-compatible endpoint (Ollama,
+          vLLM, OpenRouter, Azure OpenAI) via BaseURL. Emits text, model, usage, and stop reason on success; routes
+          429/529/5xx errors with retryable=true so upstream can decide whether to retry. Set Output JSON Schema
+          in settings to force a schema-conforming reply: the parsed object lands on response.structured (read $.structured.<field>).'
         name: llm_complete
         tags:
         - LLM
@@ -909,8 +960,8 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/llm-module:0.10.19
-      version: 0.10.19
+      image: ghcr.io/tiny-systems/llm-module:0.10.20
+      version: 0.10.20
   store-module:
     category: data
     description: Document store — persist and query JSON documents
@@ -919,6 +970,25 @@ modules:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
       components:
+      - description: Conversation Memory
+        info: 'Atomic conversation memory for llm_chat — keyed by conversationId, backed by bbolt on the PVC. append
+          does load+append+trim+save in ONE transaction, so two concurrent turns can''t lose each other''s messages
+          (unlike a get→append→put chain around document_store). Intended wiring: append the user turn → feed the
+          response''s messages into llm_chat → append the assistant turn; or make a single append of both turns
+          after llm_chat responds. Every append/get response carries the full current window, ready to feed llm_chat
+          directly. get on an unknown conversationId returns an empty messages array — not an error — so start a
+          cold conversation by appending the user turn first (that also satisfies llm_chat''s minItems:1). Message
+          shape is whatever llm_chat uses ({role, content, ...}); objects pass through unchanged. Settings.MaxMessages
+          windows each conversation to the most recent N messages (default 50; 0 = unlimited, unbounded growth).
+          clear deletes a conversation.'
+        name: conversation
+        tags:
+        - Store
+        - Memory
+        - Conversation
+        - Chat
+        - LLM
+        - bbolt
       - description: Document Store
         info: Embedded key/value store backed by bbolt + PVC. Four operation ports (put, get, delete, find) each
           with a matching result port. Use as the storage layer for chat history, agent scratchpads, intermediate
@@ -932,8 +1002,8 @@ modules:
         - Persistence
         - bbolt
         - Embedded
-      image: ghcr.io/tiny-systems/store-module:0.1.16
-      version: 0.1.16
+      image: ghcr.io/tiny-systems/store-module:0.2.0
+      version: 0.2.0
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data

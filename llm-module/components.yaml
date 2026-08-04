@@ -2,8 +2,9 @@
 # Discovery only: name/description/info/tags. Ports come from a running node.
 - name: llm_chat
   description: LLM Chat
-  info: 'Stateless multi-turn conversation primitive. Caller supplies the full Messages history per call;
-    component makes the API call and emits the updated history (with the assistant turn appended) on Response.Messages.
+  info: 'Stateless multi-turn conversation primitive. Caller supplies the full Messages history per  Set
+    Output JSON Schema in settings to force a schema-conforming reply on response.structured.call; component
+    makes the API call and emits the updated history (with the assistant turn appended) on Response.Messages.
     Persist via document_store or kv around llm_chat: load → llm_chat → save. Defaults to Anthropic''s
     Messages API; switch Provider to ''openai'' for OpenAI Chat Completions or any OpenAI-compatible endpoint
     (Ollama, vLLM, OpenRouter, Azure OpenAI) via BaseURL. For tool-using agents, llm_tools is the right
@@ -17,10 +18,12 @@
   - Conversation
 - name: llm_complete
   description: LLM Complete
-  info: Single-turn completion. Defaults to Anthropic's Messages API (with prompt caching on the system
-    prompt); switch Provider to 'openai' for OpenAI Chat Completions or any OpenAI-compatible endpoint
+  info: 'Single-turn completion. Defaults to Anthropic''s Messages API (with prompt caching on the system
+    prompt); switch Provider to ''openai'' for OpenAI Chat Completions or any OpenAI-compatible endpoint
     (Ollama, vLLM, OpenRouter, Azure OpenAI) via BaseURL. Emits text, model, usage, and stop reason on
-    success; routes 429/529/5xx errors with retryable=true so upstream can decide whether to retry.
+    success; routes 429/529/5xx errors with retryable=true so upstream can decide whether to retry. Set
+    Output JSON Schema in settings to force a schema-conforming reply: the parsed object lands on response.structured
+    (read $.structured.<field>).'
   tags:
   - LLM
   - Anthropic
