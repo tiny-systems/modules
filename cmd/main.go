@@ -9,6 +9,7 @@ import (
 	"github.com/tiny-systems/module/cli"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	_ "github.com/tiny-systems/store-module/components/conversation"
 	_ "github.com/tiny-systems/store-module/components/documentstore"
 	"os"
 	"os/signal"

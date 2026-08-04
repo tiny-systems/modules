@@ -10,7 +10,8 @@ mounted inside the operator pod so it survives pod restarts.
 | Use case | Reach for |
 |---|---|
 | Small in-component state (counters, last-seen, port runtime data) | SDK `State` via `module.Base.State()` — protected by `MaxStateBytes = 900KB` since SDK v0.10.9 |
-| Per-flow persistence above ~1MB (chat history, agent scratchpads, retrieval caches) | **document_store** (this module) |
+| Per-flow persistence above ~1MB (agent scratchpads, retrieval caches) | **document_store** (this module) |
+| LLM chat history with concurrent turns | **conversation** (this module) |
 | Shared persistence across flows / HA requirements | `postgres_*` / `redis_*` in `database-module-v0` |
 
 `document_store` is the "no external infra" path. One container, one
@@ -47,6 +48,57 @@ enabled) `error` with optional `diskFull: true`.
 
 Values are stored as JSON. Any JSON-serialisable Go value works —
 strings, numbers, objects, arrays, nested structures.
+
+### `conversation`
+
+Atomic conversation memory for `llm_chat`. Conversations are message
+lists keyed by `conversationId`; **append is a single bbolt
+transaction** (load → append → trim → save), so two concurrent turns
+can't lose each other's messages. This replaces the fragile
+`document_store` get → append-in-a-mapper → put chain, where the
+read-modify-write spans three nodes and interleaved requests drop
+turns.
+
+**Settings**
+
+| Field | Type | Notes |
+|---|---|---|
+| `maxMessages` | int | Window: only the most recent N messages are kept per conversation, trimmed on append. Default 50. `0` = unlimited — **unbounded state growth**: every append rewrites an ever-larger document. Use 0 only when conversation length is bounded elsewhere. |
+| `path` | string | Absolute path to the bbolt file. Default `/data/conversation.db` — deliberately a *separate file* from document_store's (bbolt's file lock is exclusive; same PVC, different files). All conversation nodes using the same path share one in-process handle. |
+| `enableErrorPort` | bool | Route operational failures to the error port (canonical `{context, error, retryable}` shape). |
+
+**Ports**
+
+Input (target):
+
+- `append` — `{context, conversationId, messages: [...]}` → emits on
+  `append_ok` with `{context, conversationId, messages}` — the **full
+  post-append window**, ready to feed straight into `llm_chat`.
+- `get` — `{context, conversationId}` → emits on `get_ok` with the
+  current window. Unknown conversation → **empty array, not an error**.
+- `clear` — `{context, conversationId}` → emits on `clear_ok` with
+  `{cleared}` (false if the conversation didn't exist; idempotent).
+
+Message shape is whatever `llm_chat` uses (`{role, content, ...}`) —
+objects pass through unchanged; the component never inspects them.
+
+**Wiring around `llm_chat`:**
+
+```
+request → conversation.append (user turn)
+        → llm_chat (messages = append_ok.messages)
+        → conversation.append (assistant turn)   # or append both turns at once here
+        → response
+```
+
+Start a cold conversation by appending the user turn first — `get` on
+an unknown id returns `[]`, and the append response satisfies
+`llm_chat`'s `minItems: 1`.
+
+Transient storage failures (store still opening after a pod restart)
+are marked retryable (`module.Retryable`), so edge auto-retry and the
+retry component clear them; validation and corrupt-record errors are
+permanent.
 
 ## Deployment patterns
 
@@ -119,18 +171,22 @@ is quiesced. Scheduled backup is out of scope for v1.
 
 ## Pattern: persistent chat history
 
+Use the `conversation` component — its append is atomic:
+
 ```
-http_server.request → json_decode → document_store.get (conversation key)
-                                  → join messages + new user turn
-                                  → llm_chat (stateless)
-                                  → document_store.put (conversation key)
+http_server.request → json_decode → conversation.append (user turn)
+                                  → llm_chat (messages = append_ok.messages)
+                                  → conversation.append (assistant turn)
                                   → http_server.response
 ```
 
 `llm_chat` stays stateless and reusable — the flow composes
-persistence around it. Swap `document_store` for `kv` (in
-`common-module-v0`) for small histories, or `postgres_exec` when you
-need HA.
+persistence around it. The older `document_store.get → join → put`
+version of this pattern is a read-modify-write spread across three
+nodes: two concurrent turns on the same conversation race, and one
+overwrites the other's messages. `conversation.append` does the whole
+cycle in one bbolt transaction, so concurrent turns serialize instead
+of clobbering each other. Swap for `postgres_exec` when you need HA.
 
 ## Run locally
 
