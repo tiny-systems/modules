@@ -8,7 +8,8 @@
   - auth
 - name: oauth_url_get
   description: Get Auth URL
-  info: Gets Auth URL which later may be used fot auth redirect
+  info: Gets the OAuth consent URL to redirect a user to. The code returned after consent goes to oauth_code_exchange
+    for tokens.
   tags:
   - google
   - auth

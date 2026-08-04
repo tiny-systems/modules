@@ -136,7 +136,8 @@
 - name: secret_get
   description: Secret Get
   info: Read a Kubernetes Secret by name. Returns decoded string data. Use to read docker-registry secrets
-    (regcred), TLS certs, or any opaque secret. Specify key to get a single value.
+    (regcred), TLS certs, or any opaque secret. Specify key to get a single value only — the other keys
+    are not emitted. Leave key empty to get all keys.
   tags:
   - Kubernetes
   - Secret
