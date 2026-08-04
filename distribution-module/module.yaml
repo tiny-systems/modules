@@ -3,7 +3,7 @@ source: github.com/tiny-systems/distribution-module
 description: OCI registry ops — list catalogs and copy images
 category: infra
 versions:
-- version: 0.10.13
-  image: ghcr.io/tiny-systems/distribution-module:0.10.13
+- version: 0.10.14
+  image: ghcr.io/tiny-systems/distribution-module:0.10.14
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.10
