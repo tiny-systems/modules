@@ -30,7 +30,7 @@ type Request struct {
 	Context   Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
 	Namespace string  `json:"namespace" required:"true" title:"Namespace" description:"Secret namespace"`
 	Name      string  `json:"name" required:"true" title:"Name" description:"Secret name (e.g. regcred)"`
-	Key       string  `json:"key,omitempty" title:"Key" description:"Specific data key to return. Leave empty to return all keys."`
+	Key       string  `json:"key,omitempty" title:"Key" description:"Specific data key to return. When set, only value is populated. Leave empty to return all keys in data."`
 }
 
 type Result struct {
@@ -38,8 +38,8 @@ type Result struct {
 	Namespace string            `json:"namespace" title:"Namespace"`
 	Name      string            `json:"name" title:"Name"`
 	Type      string            `json:"type" title:"Type" description:"Secret type (e.g. kubernetes.io/dockerconfigjson)"`
-	Data      map[string]string `json:"data" title:"Data" description:"Secret data (base64-decoded string values)"`
-	Value     string            `json:"value,omitempty" title:"Value" description:"Single key value (when key is specified)"`
+	Data      map[string]string `json:"data,omitempty" title:"Data" description:"All decoded key values (only when key is empty)"`
+	Value     string            `json:"value,omitempty" title:"Value" description:"Single decoded value (only when key is specified; data stays empty)"`
 }
 
 type Error struct {
@@ -63,7 +63,7 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	return module.ComponentInfo{
 		Name:        ComponentName,
 		Description: "Secret Get",
-		Info:        "Read a Kubernetes Secret by name. Returns decoded string data. Use to read docker-registry secrets (regcred), TLS certs, or any opaque secret. Specify key to get a single value.",
+		Info:        "Read a Kubernetes Secret by name. Returns decoded string data. Use to read docker-registry secrets (regcred), TLS certs, or any opaque secret. Specify key to get a single value only — the other keys are not emitted. Leave key empty to get all keys.",
 		Tags:        []string{"Kubernetes", "Secret", "Configuration"},
 	}
 }
@@ -128,25 +128,26 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 		return c.handleError(ctx, handler, req, fmt.Sprintf("failed to get secret: %v", err))
 	}
 
-	data := make(map[string]string, len(secret.Data))
-	for k, v := range secret.Data {
-		data[k] = string(v)
-	}
-
 	result := Result{
 		Context:   req.Context,
 		Namespace: req.Namespace,
 		Name:      req.Name,
 		Type:      string(secret.Type),
-		Data:      data,
 	}
 
 	if req.Key != "" {
-		val, ok := data[req.Key]
+		// Single key requested — emit only its value, never the full secret.
+		val, ok := secret.Data[req.Key]
 		if !ok {
 			return c.handleError(ctx, handler, req, fmt.Sprintf("key %q not found in secret %s/%s", req.Key, req.Namespace, req.Name))
 		}
-		result.Value = val
+		result.Value = string(val)
+	} else {
+		data := make(map[string]string, len(secret.Data))
+		for k, v := range secret.Data {
+			data[k] = string(v)
+		}
+		result.Data = data
 	}
 
 	return handler(ctx, ResultPort, result)
@@ -200,7 +201,6 @@ func (c *Component) Ports() []module.Port {
 				Namespace: "default",
 				Name:      "regcred",
 				Type:      "kubernetes.io/dockerconfigjson",
-				Data:      map[string]string{".dockerconfigjson": "{\"auths\":{}}"},
 				Value:     "{\"auths\":{}}",
 			},
 			Position: module.Right,

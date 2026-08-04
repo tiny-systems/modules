@@ -9,10 +9,11 @@ Kubernetes resource management components for cluster automation workflows.
 | Pod Create | Create a pod for one-off tasks or image pull tests |
 | Pod Watcher | Watch pod events in real time |
 | Pod Status | Get current status of a pod |
-| Pod Logs | Stream or fetch pod log output |
-| Pod List | List pods with label/field selectors |
+| Pod Logs | Fetch pod log output |
+| Pod Logs Watch | Stream pod logs continuously, reconnecting on rotation |
+| Pod List | List pods with label selectors |
 | Pod Delete | Delete a pod by name |
-| Pod Update | Update pod spec or metadata |
+| Pod Update | Update pod labels and annotations |
 | Deployment List | List deployments in a namespace |
 | Deployment Scale | Scale a deployment's replica count |
 | Deployment Update | Update deployment spec or metadata |
@@ -25,6 +26,7 @@ Kubernetes resource management components for cluster automation workflows.
 | ConfigMap Patch | Patch individual keys in a ConfigMap |
 | Secret Get | Read a Kubernetes Secret by name (regcred, TLS, opaque) |
 | Event Watcher | Watch Kubernetes events in real time |
+| Webhook Register | Create or delete a MutatingWebhookConfiguration pointing at an in-cluster service |
 | Custom Resource List | List any Kubernetes resource by API version and kind (built-in or CRDs) |
 | Sandbox Run | Runs a script in a throwaway Job and returns its output and exit code. Built for code an agent wrote: non-root, read-only root filesystem, no service-account token, dropped capabilities, CPU/memory limits, deleted when it finishes. |
 
@@ -40,10 +42,11 @@ with its exit code; only infrastructure problems reach the error port. The wait
 is capped at 240s, because a hop with no progress for six minutes is re-driven
 and would run the script a second time.
 
-**RBAC grew in 0.8.11.** `pods: create,delete`, `secrets: get,list`,
+**Since 0.8.11, RBAC includes** `pods: create,delete`, `secrets: get,list`,
 `events: watch`, `configmaps: get`, `statefulsets`, and `batch/jobs`. Most were
 already being called by existing components and failing with a 403; the module
-now declares what it uses. Review before upgrading if your cluster is strict.
+declares what it uses. Review before upgrading from an older version if your
+cluster is strict.
 
 ## Installation
 
