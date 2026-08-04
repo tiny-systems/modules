@@ -1,12 +1,14 @@
 # Tiny Systems Crypto Module
 
-Cryptographic operations for Tiny Systems flows. Generate TLS certificates, sign data, and manage keys.
+Cryptographic operations for Tiny Systems flows: self-signed TLS certificates, hash/HMAC digests, and inbound webhook signature verification.
 
 ## Components
 
 | Component | Description |
 |-----------|-------------|
 | cert_generate | Generate self-signed TLS certificates with SANs. Use for K8s admission webhooks, internal HTTPS servers, or any TLS endpoint. |
+| hmac_verify | Verify inbound webhook signatures — GitHub (X-Hub-Signature-256), Stripe (Stripe-Signature with replay window), or generic HMAC-SHA256/SHA1 (hex or base64). Emits {valid, reason} for routing; constant-time comparison. |
+| hash | Compute sha256/sha512/sha1/md5 digests (hex or base64), plain or HMAC-keyed. Use for dedup keys, content fingerprints, and signing outbound webhook payloads. |
 
 ## Installation
 

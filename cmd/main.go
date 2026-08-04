@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	_ "github.com/tiny-systems/crypto-module/components/certgenerate"
+	_ "github.com/tiny-systems/crypto-module/components/hash"
+	_ "github.com/tiny-systems/crypto-module/components/hmacverify"
 	"github.com/tiny-systems/module/cli"
 	"os"
 	"os/signal"
