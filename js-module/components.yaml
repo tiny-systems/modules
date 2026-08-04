@@ -4,8 +4,9 @@
   description: JS Eval
   info: 'Escape hatch: run arbitrary logic inline when no typed component does what you need — reshape
     data, branch, compute, glue a flow together. No compile step, runs instantly (prefer this over wasm_eval
-    for interactive work). JavaScript evaluation (ECMAScript 5.1 + ESM imports). Script must export a
-    default function: export default function(inputData) { return { result: inputData.value * 2 }; }.
+    for interactive work). Each invocation is capped by timeoutSeconds (default 30s) — runaway loops are
+    interrupted, not wedged. JavaScript evaluation (ECMAScript 5.1 + ESM imports). Script must export
+    a default function: export default function(inputData) { return { result: inputData.value * 2 }; }.
     The function receives inputData as its only argument; the return value becomes outputData on the response
     port. Context is NOT available inside the script — it passes through automatically from request to
     response. Define settings.inputData (example + schema of the script''s argument) and settings.outputData
