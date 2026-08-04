@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -85,7 +87,7 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	return module.ComponentInfo{
 		Name:        ComponentName,
 		Description: "Custom Resource List",
-		Info:        "Lists any Kubernetes resource by API version and kind. Works with built-in resources (Pods, Deployments) and custom resources (Certificates, VirtualServices). Returns name, namespace, labels, spec, and status for each item.",
+		Info:        "Lists any Kubernetes resource by API version and kind. Works with built-in resources (Pods, Deployments) and custom resources (Certificates, VirtualServices). Returns name, namespace, labels, spec, and status for each item. CRDs outside the module's built-in RBAC must be granted at install time via the chart's rbac.extraRules values; a 403 from this component includes the exact helm command.",
 		Tags:        []string{"Kubernetes", "CRD", "Custom Resource", "List"},
 	}
 }
@@ -159,6 +161,9 @@ func (c *Component) handleRequest(ctx context.Context, handler module.Handler, r
 	}
 
 	if err := k8sClient.List(ctx, list, listOpts...); err != nil {
+		if apierrors.IsForbidden(err) {
+			return c.handleError(ctx, handler, req, forbiddenHint(gvk, err))
+		}
 		return c.handleError(ctx, handler, req, fmt.Errorf("failed to list %s.%s: %w", gvk.Kind, gvk.Group, k8s.ClassifyError(err)))
 	}
 
@@ -202,6 +207,44 @@ func (c *Component) handleError(ctx context.Context, handler module.Handler, req
 		})
 	}
 	return module.Fail(err)
+}
+
+// forbiddenHint turns an RBAC 403 into an actionable operator message. The
+// module's ClusterRole deliberately carries no cluster-wide read wildcard, so
+// resources outside the built-in rules must be granted at install time via the
+// chart's rbac.extraRules values — the returned error spells out the command.
+func forbiddenHint(gvk schema.GroupVersionKind, err error) error {
+	group := gvk.Group
+	groupDisplay := group
+	if groupDisplay == "" {
+		groupDisplay = "core"
+	}
+	// helm --set list syntax: core group is the empty string.
+	groupValue := group
+	if groupValue == "" {
+		groupValue = `""`
+	}
+	plural := resourcePlural(gvk, err)
+	return fmt.Errorf(
+		"listing %s/%s is not covered by this module's RBAC — grant it at install time: "+
+			"helm upgrade <release> tinysystems/tinysystems-operator --reuse-values "+
+			"--set 'rbac.extraRules[0].apiGroups={%s}' "+
+			"--set 'rbac.extraRules[0].resources={%s}' "+
+			"--set 'rbac.extraRules[0].verbs={get,list,watch}'",
+		groupDisplay, gvk.Kind, groupValue, plural)
+}
+
+// resourcePlural extracts the resource plural from the apiserver's Forbidden
+// status details (the RBAC filter reports the resource it denied), falling
+// back to naive lowercase pluralization when the details are absent.
+func resourcePlural(gvk schema.GroupVersionKind, err error) string {
+	var statusErr *apierrors.StatusError
+	if errors.As(err, &statusErr) {
+		if details := statusErr.Status().Details; details != nil && details.Kind != "" {
+			return details.Kind
+		}
+	}
+	return strings.ToLower(gvk.Kind) + "s"
 }
 
 func formatAge(t time.Time) string {

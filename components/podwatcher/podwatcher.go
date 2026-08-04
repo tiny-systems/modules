@@ -13,6 +13,7 @@ import (
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -311,13 +312,7 @@ func (c *Component) runWatch(ctx context.Context, handler module.Handler, start 
 	go c.watchLoop(watchCtx, handler, start, watcher, podList, listOpts)
 
 	// Update control to show watching status
-	c.updateControl(ctx, handler, Control{
-		Status:           "Watching",
-		Namespace:        start.Namespace,
-		LabelSelector:    start.LabelSelector,
-		IgnoreNamespaces: start.IgnoreNamespaces,
-		ProblemsOnly:     start.ProblemsOnly,
-	})
+	c.updateControl(ctx, handler, c.watchingControl(start))
 
 	log.Info().Str("namespace", start.Namespace).Str("labelSelector", start.LabelSelector).Msg("Pod watcher started")
 
@@ -336,18 +331,36 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 	k8sClient := c.k8sClient
 	c.k8sClientLock.RUnlock()
 
+	// Last resourceVersion seen. Re-watches resume from here so the apiserver
+	// does not replay every existing pod as a synthetic ADDED event on each
+	// reconnect (watches are closed server-side every few minutes by default).
+	var lastResourceVersion string
+
 	for {
 		select {
 		case <-ctx.Done():
+			watcher.Stop()
 			return
 		case watchEvent, ok := <-watcher.ResultChan():
 			if !ok {
-				log.Debug().Msg("Pod watch channel closed, restarting...")
-				time.Sleep(time.Second)
-				var err error
-				watcher, err = k8sClient.Watch(ctx, podList, listOpts)
-				if err != nil {
-					log.Error().Err(err).Msg("Failed to restart pod watch")
+				log.Debug().Str("resourceVersion", lastResourceVersion).Msg("Pod watch channel closed, restarting...")
+				watcher = c.rewatch(ctx, handler, k8sClient, podList, listOpts, start, &lastResourceVersion)
+				if watcher == nil {
+					return
+				}
+				continue
+			}
+
+			if watchEvent.Type == watch.Error {
+				err := apierrors.FromObject(watchEvent.Object)
+				if apierrors.IsGone(err) || apierrors.IsResourceExpired(err) {
+					// Stored resourceVersion was compacted away — must re-watch fresh.
+					lastResourceVersion = ""
+				}
+				log.Warn().Err(err).Msg("Pod watch error event, restarting watch")
+				watcher.Stop()
+				watcher = c.rewatch(ctx, handler, k8sClient, podList, listOpts, start, &lastResourceVersion)
+				if watcher == nil {
 					return
 				}
 				continue
@@ -356,6 +369,12 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 			pod, ok := watchEvent.Object.(*corev1.Pod)
 			if !ok {
 				continue
+			}
+
+			// Track progress for reconnects (also from Bookmark events, which
+			// carry only a resourceVersion and are skipped below).
+			if rv := pod.ResourceVersion; rv != "" {
+				lastResourceVersion = rv
 			}
 
 			// Determine watch action first (needed for filtering)
@@ -446,6 +465,81 @@ func (c *Component) watchLoop(ctx context.Context, handler module.Handler, start
 			}
 
 			c.emitEvent(ctx, handler, start.Context, watchAction, pod, hasProblem, problemReason)
+		}
+	}
+}
+
+// watchingControl builds the Control state shown while the watch is healthy.
+func (c *Component) watchingControl(start Start) Control {
+	return Control{
+		Status:           "Watching",
+		Namespace:        start.Namespace,
+		LabelSelector:    start.LabelSelector,
+		IgnoreNamespaces: start.IgnoreNamespaces,
+		ProblemsOnly:     start.ProblemsOnly,
+	}
+}
+
+// rewatch re-establishes a closed watch, resuming from the last seen
+// resourceVersion so existing pods are not replayed as synthetic ADDED events.
+// On "410 Gone / resourceVersion too old" it falls back to one fresh watch
+// without a resourceVersion; the replayed ADDED events are emitted (this
+// component keeps no seen-set) but the recovery is flagged in the log.
+// Failures retry with exponential backoff (1s doubling to 30s), surfacing the
+// error on the Control port, until the watch is back or ctx is done. Returns
+// nil only when ctx is done.
+func (c *Component) rewatch(ctx context.Context, handler module.Handler, k8sClient client.WithWatch, podList *corev1.PodList, listOpts *client.ListOptions, start Start, lastResourceVersion *string) watch.Interface {
+	backoff := time.Second
+	const maxBackoff = 30 * time.Second
+	reportedError := false
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		// Copy the list options so retries don't mutate the caller's struct;
+		// resume from the last seen resourceVersion when we have one.
+		opts := *listOpts
+		raw := metav1.ListOptions{}
+		if listOpts.Raw != nil {
+			raw = *listOpts.Raw
+		}
+		raw.ResourceVersion = *lastResourceVersion
+		opts.Raw = &raw
+
+		watcher, err := k8sClient.Watch(ctx, podList, &opts)
+		if err == nil {
+			if reportedError {
+				log.Info().Msg("Pod watch re-established")
+				c.updateControl(ctx, handler, c.watchingControl(start))
+			}
+			return watcher
+		}
+
+		if *lastResourceVersion != "" && (apierrors.IsGone(err) || apierrors.IsResourceExpired(err)) {
+			// The stored resourceVersion was compacted away. Recover with a
+			// fresh watch; the apiserver replays current pods as ADDED events.
+			log.Warn().Err(err).Msg("Pod watch resourceVersion expired; falling back to fresh watch — existing pods will replay as ADDED")
+			*lastResourceVersion = ""
+			continue
+		}
+
+		log.Error().Err(err).Dur("backoff", backoff).Msg("Failed to restart pod watch, retrying")
+		ctrl := c.watchingControl(start)
+		ctrl.Status = fmt.Sprintf("Watch failed: %v, retrying", err)
+		c.updateControl(ctx, handler, ctrl)
+		reportedError = true
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(backoff):
+		}
+		if backoff *= 2; backoff > maxBackoff {
+			backoff = maxBackoff
 		}
 	}
 }

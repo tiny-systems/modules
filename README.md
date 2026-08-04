@@ -27,7 +27,7 @@ Kubernetes resource management components for cluster automation workflows.
 | Secret Get | Read a Kubernetes Secret by name (regcred, TLS, opaque) |
 | Event Watcher | Watch Kubernetes events in real time |
 | Webhook Register | Create or delete a MutatingWebhookConfiguration pointing at an in-cluster service |
-| Custom Resource List | List any Kubernetes resource by API version and kind (built-in or CRDs) |
+| Custom Resource List | List any Kubernetes resource by API version and kind (built-in or CRDs). CRDs outside the module's built-in RBAC need `rbac.extraRules` at install time — a 403 from the component includes the exact `helm upgrade` command |
 | Sandbox Run | Runs a script in a throwaway Job and returns its output and exit code. Built for code an agent wrote: non-root, read-only root filesystem, no service-account token, dropped capabilities, CPU/memory limits, deleted when it finishes. |
 
 ## Notes
