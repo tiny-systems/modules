@@ -563,6 +563,11 @@ func (c *Component) fail(ctx context.Context, handler module.Handler, reqCtx Con
 // follower-refusal and transient lock-contention errors where the
 // caller should back off and re-fire.
 func (c *Component) failRetryable(ctx context.Context, handler module.Handler, reqCtx Context, err error) module.Result {
+	// Mark the error itself, not just the port payload's Retryable field:
+	// when the port is off (or the runtime inspects the failure directly)
+	// module.ShouldRetry only sees what the error carries — an unmarked
+	// bubble here silently turned "back off and re-fire" into a dead stop.
+	err = module.Retryable(err)
 	c.mu.RLock()
 	enabled := c.settings.EnableErrorPort
 	c.mu.RUnlock()
