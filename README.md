@@ -1,69 +1,46 @@
-# Tiny Systems Example Module
+# Tiny Systems Storage Module
 
-Template repository for building your own Tiny Systems module. Fork this repo to get started.
+Blob transport for Tiny Systems flows: put, get, list, and presign objects in any S3-compatible store — AWS S3, MinIO, Cloudflare R2, GCS interop. This is how a flow attaches the CSV, stores the report, or reads the dump.
 
-## What's Included
+## Components
 
-A minimal Echo component that receives a message and passes it through:
+| Component | Description |
+|-----------|-------------|
+| blob_put | Upload an object — {bucket?, key, data, dataBase64?, contentType?} → {etag, size}. Text goes in as-is; binary via base64. Network failures are retryable: S3 PUT is idempotent for the same key + bytes. |
+| blob_get | Download an object into the flow — {bucket?, key, maxBytes?, asBase64?} → {data, contentType, size}. Objects over maxBytes (default 10 MiB) are refused with a permanent error before any bytes move; binary comes back safely as base64. |
+| blob_list | List objects by prefix — {bucket?, prefix?, max?} → {items: [{key, size, lastModified, etag}], truncated}. Default 100 items, hard cap 1000; truncated=true means narrow the prefix. |
+| blob_presign | Mint a time-limited URL for one object — {bucket?, key, method GET/PUT, expirySeconds?} → {url}. Whoever holds the URL can download or upload that object without credentials; default 15 min, max 7 days. |
 
-```go
-func (t *Component) Handle(ctx context.Context, handler module.Handler, port string, msg interface{}) any {
-    if in, ok := msg.(InMessage); ok {
-        return handler(ctx, OutPort, in.Context)
-    }
-    return fmt.Errorf("invalid message")
-}
-```
+Every component carries the same settings port: endpoint, region, access key, secret key, SSL, and a default bucket. A bucket set on a request always wins over the settings default.
 
-This demonstrates the core patterns:
-- Component interface (`GetInfo`, `Handle`, `Ports`, `Instance`)
-- Input/output ports with typed messages
-- Handler response propagation (blocking I/O)
-- `configurable:"true"` struct tag for edge data mapping
+## Worked example: publish a report as a Slack link
 
-## Project Structure
+Fetch a report, store it, and share a download link — the report bytes ride the flow once and never pass through Slack:
 
-```
-cmd/main.go              # Entry point — registers components, runs CLI
-components/echo/echo.go  # Example component
-go.mod                   # SDK dependency (github.com/tiny-systems/module)
-```
+1. **http_call** fetches the report (`GET https://internal-api/reports/weekly.csv`).
+2. **blob_put** stores it: `{key: "reports/2026-08/weekly.csv", data: $.body, contentType: "text/csv"}` → `{etag, size}`.
+3. **blob_presign** mints the link: `{key: "reports/2026-08/weekly.csv", method: "GET", expirySeconds: 86400}` → `{url}`.
+4. **slack_send** posts it: `"Weekly report ready (24h link): " + $.url`.
 
-## Getting Started
+The reverse direction works the same way: **blob_list** the `incoming/` prefix, **blob_get** each key (with `asBase64: true` for binary), and process the contents in-flow.
 
-1. **Use this template** — click "Use this template" on GitHub
-2. **Rename the module** in `go.mod`
-3. **Add your components** under `components/`
-4. **Register them** via `init()` + `registry.Register()`
-
-## Run Locally
+## Installation
 
 ```shell
-go run cmd/main.go run \
-  --name=my-org/my-module-v1 \
-  --namespace=tinysystems \
-  --version=1.0.0
-```
-
-## Build and Deploy
-
-```shell
-# Build container image
-docker build -t myregistry/my-module:1.0.0 .
-docker push myregistry/my-module:1.0.0
-
-# Install via Helm
 helm repo add tinysystems https://tiny-systems.github.io/module/
-helm install my-module tinysystems/tinysystems-operator \
-  --set controllerManager.manager.image.repository=myregistry/my-module
+helm install storage-module tinysystems/tinysystems-operator \
+  --set controllerManager.manager.image.repository=ghcr.io/tiny-systems/storage-module
 ```
 
-## Resources
+## Run locally
 
-- [Developer Guide](https://docs.tinysystems.io/developer-guide/getting-started/hello-world-component) — build your first component
-- [Module SDK](https://github.com/tiny-systems/module) — core library
-- [Component Examples](https://docs.tinysystems.io/examples/components/simple-transformer) — real-world patterns
-- [Tiny Systems Platform](https://tinysystems.io) — visual editor and module directory
+```shell
+go run cmd/main.go run --name=tinysystems/storage-module --namespace=tinysystems --version=1.0.0
+```
+
+## Part of Tiny Systems
+
+This module is part of the [Tiny Systems](https://github.com/tiny-systems) platform — a visual flow-based programming engine for Kubernetes.
 
 ## License
 
