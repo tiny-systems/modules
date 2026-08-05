@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-04T22:08:50Z'
+generated: '2026-08-05T01:00:58Z'
 modules:
   common-module:
     category: core
@@ -18,11 +18,16 @@ modules:
         - ARRAY
         - agent_tool
       - description: Ask a human
-        info: Human-in-the-loop gate. A message on Request publishes a form on the Control port; the flow does NOT
-          block. A human fills the form in the editor and submits, which emits {values, context} on Out — wire Out
-          to the action being gated (e.g. workload_restart) and branch on the submitted values with a router. The
-          form is a JSON Schema authored in settings; fields with format:"button" are the answers. Defaults to Approve/Deny.
-          Use to put a person in front of anything destructive.
+        info: 'Human-in-the-loop gate. A message on Request publishes a form on the Control port; the flow does
+          NOT block. A human fills the form in the editor and submits, which emits {values, context} on Out — wire
+          Out to the action being gated (e.g. workload_restart) and branch on the submitted values with a router.
+          The form is a JSON Schema authored in settings; fields with format:"button" are the answers. Defaults
+          to Approve/Deny. Concurrent requests queue FIFO: the Control port shows the OLDEST pending question first
+          and answering it reveals the next. Pending questions persist in the node''s State, so they survive pod
+          restarts and are multi-replica safe. Questions older than timeoutSeconds (0 = wait forever) expire onto
+          the Error port as {context, error}; expiry is passive — checked when messages arrive and on reconcile
+          ticks — so an idle node holds an expired question until the next event. Use to put a person in front of
+          anything destructive.'
         name: ask
         tags:
         - SDK
@@ -187,8 +192,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.8.0
-      version: 0.8.0
+      image: ghcr.io/tiny-systems/common-module:0.9.0
+      version: 0.9.0
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -962,6 +967,79 @@ modules:
         - Agent
       image: ghcr.io/tiny-systems/llm-module:0.10.20
       version: 0.10.20
+  storage-module:
+    category: data
+    description: S3-compatible blob storage — put, get, list, and presign objects (S3, MinIO, R2, GCS interop)
+    source: github.com/tiny-systems/storage-module
+    versions:
+    - chart: tinysystems/tinysystems-operator
+      chartVersion: 0.2.10
+      components:
+      - description: Blob Get
+        info: 'Downloads an object from an S3-compatible store (AWS S3, MinIO, Cloudflare R2, GCS interop) and emits
+          {data, contentType, size}. Use it to read back what blob_put stored, or to pull an externally produced
+          file — a data dump, an uploaded CSV — into the flow. Bucket precedence: request.bucket wins; empty falls
+          back to settings.bucket. Objects larger than maxBytes (default 10485760 = 10 MiB) are refused with a permanent
+          error naming the actual size — blobs travel as in-flow message payloads, so raise maxBytes deliberately,
+          not reflexively. For binary objects set asBase64=true: data is then standard base64 of the object bytes
+          (size still counts the original bytes). Text objects can be read as-is with asBase64=false.'
+        name: blob_get
+        tags:
+        - Storage
+        - S3
+        - MinIO
+        - Blob
+        - Download
+      - description: Blob List
+        info: 'Lists objects in an S3-compatible store (AWS S3, MinIO, Cloudflare R2, GCS interop) by prefix and
+          emits {items: [{key, size, lastModified, etag}], truncated}. Use it to discover what to blob_get or blob_presign
+          — e.g. all of reports/2026-08/. Bucket precedence: request.bucket wins; empty falls back to settings.bucket.
+          Listing is recursive under the prefix. At most max items are returned (default 100, hard cap 1000); truncated=true
+          means more matched — narrow the prefix rather than paging, there is no cursor. items is an empty array,
+          not an error, when nothing matches.'
+        name: blob_list
+        tags:
+        - Storage
+        - S3
+        - MinIO
+        - Blob
+        - List
+      - description: Blob Presign
+        info: 'Mints a time-limited presigned URL for one object in an S3-compatible store (AWS S3, MinIO, Cloudflare
+          R2, GCS interop) and emits {url}. The URL carries its own signature: whoever holds it can GET (download)
+          or PUT (upload) that one object over plain HTTP until it expires — no credentials, and the bytes never
+          ride through the flow. Typical use: blob_put a report, blob_presign it, send the link to Slack or email.
+          Bucket precedence: request.bucket wins; empty falls back to settings.bucket. Expiry defaults to 900s (15
+          min) and is capped at 604800s (7 days — the S3 signing limit; longer requests fail with a permanent error).
+          Signing happens locally; note that a GET URL for a missing key still signs fine — the holder gets a 404
+          when using it. For in-cluster MinIO endpoints the URL points at the internal host, reachable only where
+          the cluster DNS resolves.'
+        name: blob_presign
+        tags:
+        - Storage
+        - S3
+        - MinIO
+        - Blob
+        - Presign
+        - Share
+      - description: Blob Put
+        info: 'Uploads an object to an S3-compatible store (AWS S3, MinIO, Cloudflare R2, GCS interop) and emits
+          {bucket, key, etag, size}. Use it to persist anything a flow produced or fetched — a report, a CSV, an
+          attachment — so blob_get can read it back or blob_presign can hand out a download link. Bucket precedence:
+          request.bucket wins; empty falls back to settings.bucket; neither set is an error. Text content goes in
+          data as-is; for binary content set dataBase64=true and pass standard base64 in data — the store receives
+          the decoded bytes. Set contentType (default application/octet-stream) so downloads serve with the right
+          type. Network failures during upload are marked retryable: S3 PutObject is a full-object replace of the
+          same key with the same bytes, so re-running a possibly-landed upload converges on the same stored object.'
+        name: blob_put
+        tags:
+        - Storage
+        - S3
+        - MinIO
+        - Blob
+        - Upload
+      image: ghcr.io/tiny-systems/storage-module:0.1.0
+      version: 0.1.0
   store-module:
     category: data
     description: Document store — persist and query JSON documents

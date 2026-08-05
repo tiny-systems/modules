@@ -10,11 +10,16 @@
   - agent_tool
 - name: ask
   description: Ask a human
-  info: Human-in-the-loop gate. A message on Request publishes a form on the Control port; the flow does
+  info: 'Human-in-the-loop gate. A message on Request publishes a form on the Control port; the flow does
     NOT block. A human fills the form in the editor and submits, which emits {values, context} on Out
     — wire Out to the action being gated (e.g. workload_restart) and branch on the submitted values with
     a router. The form is a JSON Schema authored in settings; fields with format:"button" are the answers.
-    Defaults to Approve/Deny. Use to put a person in front of anything destructive.
+    Defaults to Approve/Deny. Concurrent requests queue FIFO: the Control port shows the OLDEST pending
+    question first and answering it reveals the next. Pending questions persist in the node''s State,
+    so they survive pod restarts and are multi-replica safe. Questions older than timeoutSeconds (0 =
+    wait forever) expire onto the Error port as {context, error}; expiry is passive — checked when messages
+    arrive and on reconcile ticks — so an idle node holds an expired question until the next event. Use
+    to put a person in front of anything destructive.'
   tags:
   - SDK
   - Human
