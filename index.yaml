@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-05T01:00:58Z'
+generated: '2026-08-06T00:06:41Z'
 modules:
   common-module:
     category: core
@@ -654,6 +654,10 @@ modules:
         - Server
         - sync_rpc
       image: ghcr.io/tiny-systems/http-module:0.5.39
+      values: "rbac:\n  extraRules:\n  - apiGroups:\n    - \"\"\n    resources:\n    - pods\n    verbs:\n    - get\n\
+        \  - apiGroups:\n    - \"\"\n    resources:\n    - services\n    verbs:\n    - get\n    - list\n    - update\n\
+        \  - apiGroups:\n    - networking.k8s.io\n    resources:\n    - ingresses\n    verbs:\n    - get\n    -\
+        \ list\n    - update\n"
       version: 0.5.39
   js-module:
     category: core
@@ -878,6 +882,17 @@ modules:
         - Kubernetes
         - Restart
       image: ghcr.io/tiny-systems/kubernetes-module:0.8.16
+      values: "rbac:\n  enableKubernetesResourceAccess: true\n  extraRules:\n  - apiGroups:\n    - apps\n    resources:\n\
+        \    - deployments\n    verbs:\n    - update\n    - patch\n  - apiGroups:\n    - apps\n    resources:\n\
+        \    - statefulsets\n    - daemonsets\n    verbs:\n    - get\n    - list\n    - watch\n    - update\n  \
+        \  - patch\n  - apiGroups:\n    - \"\"\n    resources:\n    - configmaps\n    verbs:\n    - get\n    - create\n\
+        \    - update\n    - patch\n  - apiGroups:\n    - \"\"\n    resources:\n    - secrets\n    verbs:\n    -\
+        \ get\n    - list\n  - apiGroups:\n    - \"\"\n    resources:\n    - events\n    verbs:\n    - get\n   \
+        \ - list\n    - watch\n  - apiGroups:\n    - admissionregistration.k8s.io\n    resources:\n    - mutatingwebhookconfigurations\n\
+        \    verbs:\n    - get\n    - create\n    - update\n    - delete\n  - apiGroups:\n    - \"\"\n    resources:\n\
+        \    - pods/log\n    verbs:\n    - get\n  - apiGroups:\n    - \"\"\n    resources:\n    - pods\n    verbs:\n\
+        \    - create\n    - delete\n  - apiGroups:\n    - batch\n    resources:\n    - jobs\n    verbs:\n    -\
+        \ create\n    - get\n    - list\n    - watch\n    - delete\n"
       version: 0.8.16
   llm-module:
     category: ai
