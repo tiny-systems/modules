@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-06T08:38:48Z'
+generated: '2026-08-07T19:21:34Z'
 modules:
   common-module:
     category: core
@@ -192,8 +192,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.0
-      version: 0.9.0
+      image: ghcr.io/tiny-systems/common-module:0.9.1
+      version: 0.9.1
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
