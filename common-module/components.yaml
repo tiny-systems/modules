@@ -131,6 +131,15 @@
     Edge configuration can set literal values and map fields without needing modify in between.
   tags:
   - SDK
+- name: prompt
+  description: Prompt
+  info: Dashboard request→response widget. A person fills a form, submits, sees a working state, then
+    the answer appears in the SAME widget. Wire Out into the flow and wire the flow's result back into
+    In, carrying requestId unchanged so the answer matches the question. Enable it as a dashboard widget.
+    The human-initiated mirror of `ask`.
+  tags:
+  - SDK
+  - dashboard
 - name: retry
   description: Retry
   info: 'Explicit retry supervisor with bounded attempts and configurable backoff. Pairs with the error

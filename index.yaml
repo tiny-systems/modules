@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-11T08:32:52Z'
+generated: '2026-08-11T20:55:57Z'
 modules:
   common-module:
     category: core
@@ -139,6 +139,15 @@ modules:
         name: transform
         tags:
         - SDK
+      - description: Prompt
+        info: Dashboard request→response widget. A person fills a form, submits, sees a working state, then the
+          answer appears in the SAME widget. Wire Out into the flow and wire the flow's result back into In, carrying
+          requestId unchanged so the answer matches the question. Enable it as a dashboard widget. The human-initiated
+          mirror of `ask`.
+        name: prompt
+        tags:
+        - SDK
+        - dashboard
       - description: Retry
         info: 'Explicit retry supervisor with bounded attempts and configurable backoff. Pairs with the error port
           of any component that emits the canonical module.ErrorMessage shape {context, error, retryable} (build
@@ -201,8 +210,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.3
-      version: 0.9.3
+      image: ghcr.io/tiny-systems/common-module:0.9.5
+      version: 0.9.5
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
