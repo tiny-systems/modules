@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: '2026-08-07T19:21:34Z'
+generated: '2026-08-11T08:32:52Z'
 modules:
   common-module:
     category: core
@@ -86,6 +86,15 @@ modules:
         name: delay
         tags:
         - SDK
+      - description: Display
+        info: 'Shows one piece of text on the dashboard, rendered as markdown. Use it as a flow''s answer panel:
+          wire the value a person actually reads into Text (e.g. text: "{{$.outputData.messages[0].content}}") rather
+          than passing the whole message, which renders as a wall of form fields. Has no output ports — it is a
+          sink. Enable it as a dashboard widget to give a flow a readable result.'
+        name: display
+        tags:
+        - SDK
+        - dashboard
       - description: Flow Telemetry
         info: 'Reads the platform''s own execution traces, so a flow can inspect how flows are running. Without
           a traceId it lists runs in the window (id, span count, error count, duration) — set errorsOnly to find
@@ -192,8 +201,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.1
-      version: 0.9.1
+      image: ghcr.io/tiny-systems/common-module:0.9.3
+      version: 0.9.3
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components

@@ -77,6 +77,15 @@
     then emits context on Out. Use for rate limiting or adding pauses between operations.
   tags:
   - SDK
+- name: display
+  description: Display
+  info: 'Shows one piece of text on the dashboard, rendered as markdown. Use it as a flow''s answer panel:
+    wire the value a person actually reads into Text (e.g. text: "{{$.outputData.messages[0].content}}")
+    rather than passing the whole message, which renders as a wall of form fields. Has no output ports
+    — it is a sink. Enable it as a dashboard widget to give a flow a readable result.'
+  tags:
+  - SDK
+  - dashboard
 - name: flow_telemetry
   description: Flow Telemetry
   info: 'Reads the platform''s own execution traces, so a flow can inspect how flows are running. Without
