@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-19T21:59:53Z"
+generated: "2026-08-19T22:15:35Z"
 modules:
   common-module:
     category: core
@@ -159,10 +159,12 @@ modules:
         - Config
         - Enrich
       - description: Key-Value Store
-        info: Key-value store backed by TinyNode metadata via the SDK State primitive.
+        info: 'Key-value store backed by TinyNode metadata via the SDK State primitive.
           Stores documents with a configurable schema and primary key. Supports JSONPath
           queries. Multi-replica safe — all common-module replicas observe the same
-          store via the K8s watch.
+          store via the K8s watch. Document VALUES ARE STRINGS: a count or a flag
+          must be converted before it is stored (an expression can do it, e.g. ""
+          + $.count), and comes back as a string to be parsed by whatever reads it.'
         name: kv
         tags:
         - KV
@@ -248,8 +250,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.24
-      version: 0.9.24
+      image: ghcr.io/tiny-systems/common-module:0.9.25
+      version: 0.9.25
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
