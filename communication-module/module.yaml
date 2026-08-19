@@ -3,7 +3,7 @@ source: github.com/tiny-systems/communication-module
 description: Slack — slash commands and interactive components
 category: comms
 versions:
-- version: 0.3.15
-  image: ghcr.io/tiny-systems/communication-module:0.3.15
+- version: 0.3.16
+  image: ghcr.io/tiny-systems/communication-module:0.3.16
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.10
