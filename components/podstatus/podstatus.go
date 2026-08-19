@@ -64,7 +64,7 @@ func (c *Component) GetInfo() module.ComponentInfo {
 	return module.ComponentInfo{
 		Name:        ComponentName,
 		Description: "Pod Status",
-		Info:        "Get status of pods matching a label selector. Returns pod count, health summary, and individual pod details.",
+		Info:        "Counts pods BY PHASE for a label selector you must supply. Returns running/pending/failed/succeeded totals, a single healthy boolean for the whole set, and per-pod details. Two limits decide whether this fits: the label selector is required, so it cannot answer for a whole namespace; and phase is not health — a pod in CrashLoopBackOff or ImagePullBackOff is phase Running, so it lands in the running count and no counter here reports it. To find unhealthy pods, or to cover a namespace, use pod_list and read its per-pod hasProblem flag.",
 		Tags:        []string{"Kubernetes", "ChatOps", "Pods", "Status"},
 	}
 }
