@@ -134,8 +134,16 @@ type Stop struct {
 }
 
 type Request struct {
-	Context       StartContext `json:"context"`
-	RequestURI    string       `json:"requestURI" required:"true"`
+	Context StartContext `json:"context"`
+	// Path is the route WITHOUT the query string, which is what a flow
+	// actually branches on. RequestURI includes it, so a router comparing
+	// against "/webhook" matched until the day somebody appended ?retry=1 and
+	// then silently stopped — the flow still ran, down the wrong branch.
+	Path string `json:"path" required:"true" title:"Path" description:"Request path with no query string, e.g. /hooks/github. Branch on this, not on requestURI."`
+	// PathSegments saves the expression engine a job it cannot do: it has
+	// split(), but a router needs one segment, and there is no index-into-split.
+	PathSegments  []string     `json:"pathSegments" title:"Path Segments" description:"Path split on '/', empty parts dropped: /hooks/github gives [hooks, github]. Read one with $.pathSegments[0]."`
+	RequestURI    string       `json:"requestURI" required:"true" title:"Request URI" description:"Full target including the query string. Use path to route; use this only when you need the raw line."`
 	RequestParams url.Values   `json:"requestParams" required:"true"`
 	Host          string       `json:"host" required:"true"`
 	Method        string       `json:"method" required:"true" title:"Method" enum:"GET,POST,PATCH,PUT,DELETE" enumTitles:"GET,POST,PATCH,PUT,DELETE"`
@@ -624,9 +632,13 @@ func (h *Component) createEchoServer(handler module.Handler) *echo.Echo {
 }
 
 func (h *Component) handleHTTPRequest(c echo.Context, handler module.Handler) error {
-	req := h.buildRequest(c)
+	req, err := h.buildRequest(c)
+	if err != nil {
+		log.Error().Err(err).Msg("http_server: could not read the request")
+		return c.String(http.StatusBadRequest, "could not read request body")
+	}
 
-	log.Info().Str("uri", req.RequestURI).Str("method", req.Method).Msg("http_server: handling request")
+	log.Info().Str("path", req.Path).Str("method", req.Method).Msg("http_server: handling request")
 
 	resp := handler(c.Request().Context(), RequestPort, req)
 	respValue := resp.Value()
@@ -667,7 +679,7 @@ func (h *Component) handleHTTPRequest(c echo.Context, handler module.Handler) er
 	return nil
 }
 
-func (h *Component) buildRequest(c echo.Context) Request {
+func (h *Component) buildRequest(c echo.Context) (Request, error) {
 	req := Request{
 		Context:       h.startSettings.Context,
 		Host:          c.Request().Host,
@@ -678,16 +690,38 @@ func (h *Component) buildRequest(c echo.Context) Request {
 		Scheme:        c.Scheme(),
 		Headers:       h.extractHeaders(c.Request()),
 		PodName:       os.Getenv("HOSTNAME"),
+		Path:          c.Request().URL.Path,
+		PathSegments:  pathSegments(c.Request().URL.Path),
 	}
 
 	maxBodySize := h.getMaxBodySize()
 	limitedReader := io.LimitReader(c.Request().Body, int64(maxBodySize))
 	body, err := io.ReadAll(limitedReader)
-	if err == nil {
-		req.Body = utils.BytesToString(body)
+	if err != nil {
+		// A body that could not be read used to be delivered as an empty
+		// string. The flow then ran on nothing — a webhook handler seeing no
+		// payload, a signature check failing — with the actual cause, a
+		// truncated or aborted upload, reported nowhere.
+		return req, fmt.Errorf("read request body: %w", err)
 	}
+	req.Body = utils.BytesToString(body)
 
-	return req
+	return req, nil
+}
+
+// pathSegments splits a path for routing, dropping the empty parts that a
+// leading, trailing or doubled slash produces — so /hooks/github/ and
+// /hooks/github segment identically, which is how anyone writing the route
+// expects them to behave.
+func pathSegments(path string) []string {
+	parts := strings.Split(path, "/")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 func (h *Component) getMaxBodySize() int {
