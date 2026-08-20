@@ -1,3 +1,15 @@
+- description: Array Filter
+  info: Keeps the array elements matching a JSONPath predicate, and counts them. The query runs against
+    each item on its own, so $.hasProblem, $.phase == 'Running' and $.restarts > 3 all work; it is the
+    same dialect kv's query port uses. Returns items, count and total — wire count into a router to branch
+    on whether anything matched at all. By default an item the predicate cannot be evaluated against fails
+    the run, so a mistyped field is reported instead of silently filtering everything away; turn on skipUnevaluable
+    when a ragged array is expected.
+  name: array_filter
+  tags:
+  - SDK
+  - ARRAY
+  - agent_tool
 - description: Array Get
   info: 'Get an array element by 1-based index. Input: {array, index}; returns {item, index} or an error
     if the index is out of range.'

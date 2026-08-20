@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-19T22:15:35Z"
+generated: "2026-08-20T12:13:38Z"
 modules:
   common-module:
     category: core
@@ -9,6 +9,20 @@ modules:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.10
       components:
+      - description: Array Filter
+        info: Keeps the array elements matching a JSONPath predicate, and counts them.
+          The query runs against each item on its own, so $.hasProblem, $.phase ==
+          'Running' and $.restarts > 3 all work; it is the same dialect kv's query
+          port uses. Returns items, count and total — wire count into a router to
+          branch on whether anything matched at all. By default an item the predicate
+          cannot be evaluated against fails the run, so a mistyped field is reported
+          instead of silently filtering everything away; turn on skipUnevaluable when
+          a ragged array is expected.
+        name: array_filter
+        tags:
+        - SDK
+        - ARRAY
+        - agent_tool
       - description: Array Get
         info: 'Get an array element by 1-based index. Input: {array, index}; returns
           {item, index} or an error if the index is out of range.'
@@ -250,8 +264,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.25
-      version: 0.9.25
+      image: ghcr.io/tiny-systems/common-module:0.9.27
+      version: 0.9.27
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -747,7 +761,7 @@ modules:
         - HTTP
         - Server
         - sync_rpc
-      image: ghcr.io/tiny-systems/http-module:0.5.40
+      image: ghcr.io/tiny-systems/http-module:0.5.41
       values: |
         rbac:
           extraRules:
@@ -773,7 +787,7 @@ modules:
             - get
             - list
             - update
-      version: 0.5.40
+      version: 0.5.41
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
@@ -1160,6 +1174,21 @@ modules:
         - Anthropic
         - Router
         - Classify
+      - description: LLM Tool Result
+        info: 'Appends a tool''s output to a conversation so a tool-using loop can
+          continue. Wire it between a tool''s output and llm_tools'' request port:
+          take messages and toolUseId from the ToolCall that llm_tools emitted, put
+          the tool''s output in result, and send the response straight back to llm_tools.
+          Objects and arrays are JSON-encoded, a string is passed through unchanged.
+          This exists because an edge configuration can build an array but cannot
+          append to one — without it every loop needs a js_eval doing the same six
+          lines. Carry an apiKey through context if the next call needs one; this
+          component never reads it.'
+        name: llm_tool_result
+        tags:
+        - LLM
+        - Agent
+        - Tools
       - description: LLM Tools
         info: 'ReAct / function-calling primitive. Declare tools in Settings; each
           becomes an out_<toolname> source port emitting {toolUseId, input, messages}
@@ -1202,8 +1231,8 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/llm-module:0.10.23
-      version: 0.10.23
+      image: ghcr.io/tiny-systems/llm-module:0.10.24
+      version: 0.10.24
   storage-module:
     category: data
     description: S3-compatible blob storage — put, get, list, and presign objects
