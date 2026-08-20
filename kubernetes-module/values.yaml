@@ -1,6 +1,41 @@
+# enableKubernetesResourceAccess is a bundle: pods, deployments, services and
+# ingresses, every one of them with update, cluster-wide. This module reads
+# pods and restarts workloads; it has never written a Service or an Ingress.
+# The bundle handed it the ability to repoint any service and rewrite any
+# ingress in the cluster.
+#
+# Spelled out instead: read what it reads, write only the workloads it exists
+# to restart. custom_resource_list keeps working for these kinds and reports a
+# 403 with the helm command for anything else, which is its documented
+# contract.
 rbac:
-  enableKubernetesResourceAccess: true
+  enableKubernetesResourceAccess: false
   extraRules:
+  - apiGroups:
+    - ''
+    resources:
+    - pods
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    resources:
+    - deployments
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - list
+    - watch
   - apiGroups:
     - apps
     resources:
@@ -20,7 +55,7 @@ rbac:
     - update
     - patch
   - apiGroups:
-    - ""
+    - ''
     resources:
     - configmaps
     verbs:
@@ -29,7 +64,7 @@ rbac:
     - update
     - patch
   - apiGroups:
-    - ""
+    - ''
     resources:
     - events
     verbs:
@@ -46,13 +81,13 @@ rbac:
     - update
     - delete
   - apiGroups:
-    - ""
+    - ''
     resources:
     - pods/log
     verbs:
     - get
   - apiGroups:
-    - ""
+    - ''
     resources:
     - pods
     verbs:
@@ -68,15 +103,9 @@ rbac:
     - list
     - watch
     - delete
-
-  # secret_get reads a Secret by namespace and name. As a cluster rule that
-  # meant every Secret in the cluster — kube-system included — so a component
-  # meant to fetch one registry credential could fetch all of them. Namespaced,
-  # it reads the secrets sitting alongside the runtime, which is the boundary
-  # the chart already documents.
   extraNamespacedRules:
   - apiGroups:
-    - ""
+    - ''
     resources:
     - secrets
     verbs:
