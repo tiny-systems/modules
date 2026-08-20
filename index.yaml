@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-20T13:53:34Z"
+generated: "2026-08-20T14:54:59Z"
 modules:
   common-module:
     category: core
@@ -1274,8 +1274,8 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/llm-module:0.10.25
-      version: 0.10.25
+      image: ghcr.io/tiny-systems/llm-module:0.10.26
+      version: 0.10.26
   storage-module:
     category: data
     description: S3-compatible blob storage — put, get, list, and presign objects
