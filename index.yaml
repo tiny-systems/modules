@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-20T20:56:52Z"
+generated: "2026-08-20T21:01:04Z"
 modules:
   common-module:
     category: core
@@ -733,7 +733,7 @@ modules:
     source: github.com/tiny-systems/http-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Basic Auth Headers Parser
         info: 'Extracts Basic Auth credentials from HTTP headers. In port receives:
@@ -806,16 +806,23 @@ modules:
         - sync_rpc
       image: ghcr.io/tiny-systems/http-module:0.5.43
       values: |
+        # http_server exposes itself through a Service and an Ingress. Everything the
+        # SDK's resource manager writes is scoped to its own release namespace — all
+        # seventeen call sites use client.InNamespace — so these never needed to be
+        # cluster rules. As cluster rules they granted update on every Ingress in the
+        # cluster, which is a traffic-hijack primitive: rewrite any ingress, take any
+        # hostname.
         rbac:
-          extraRules:
+          extraRules: []
+          extraNamespacedRules:
           - apiGroups:
-            - ""
+            - ''
             resources:
             - pods
             verbs:
             - get
           - apiGroups:
-            - ""
+            - ''
             resources:
             - services
             verbs:

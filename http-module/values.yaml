@@ -1,13 +1,20 @@
+# http_server exposes itself through a Service and an Ingress. Everything the
+# SDK's resource manager writes is scoped to its own release namespace — all
+# seventeen call sites use client.InNamespace — so these never needed to be
+# cluster rules. As cluster rules they granted update on every Ingress in the
+# cluster, which is a traffic-hijack primitive: rewrite any ingress, take any
+# hostname.
 rbac:
-  extraRules:
+  extraRules: []
+  extraNamespacedRules:
   - apiGroups:
-    - ""
+    - ''
     resources:
     - pods
     verbs:
     - get
   - apiGroups:
-    - ""
+    - ''
     resources:
     - services
     verbs:
