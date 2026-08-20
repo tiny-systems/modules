@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-20T20:41:18Z"
+generated: "2026-08-20T20:56:52Z"
 modules:
   common-module:
     category: core
@@ -867,7 +867,7 @@ modules:
     source: github.com/tiny-systems/kubernetes-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: ConfigMap Patch
         info: 'Set or remove a key in a Kubernetes ConfigMap. On set: creates the
@@ -1114,13 +1114,6 @@ modules:
           - apiGroups:
             - ""
             resources:
-            - secrets
-            verbs:
-            - get
-            - list
-          - apiGroups:
-            - ""
-            resources:
             - events
             verbs:
             - get
@@ -1158,6 +1151,20 @@ modules:
             - list
             - watch
             - delete
+
+          # secret_get reads a Secret by namespace and name. As a cluster rule that
+          # meant every Secret in the cluster — kube-system included — so a component
+          # meant to fetch one registry credential could fetch all of them. Namespaced,
+          # it reads the secrets sitting alongside the runtime, which is the boundary
+          # the chart already documents.
+          extraNamespacedRules:
+          - apiGroups:
+            - ""
+            resources:
+            - secrets
+            verbs:
+            - get
+            - list
       version: 0.8.20
   llm-module:
     category: ai
