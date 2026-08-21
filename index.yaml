@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-20T22:32:19Z"
+generated: "2026-08-21T11:33:11Z"
 modules:
   common-module:
     category: core
@@ -7,7 +7,7 @@ modules:
     source: github.com/tiny-systems/common-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Array Filter
         info: Keeps the array elements matching a JSONPath predicate, and counts them.
@@ -264,15 +264,15 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.32
-      version: 0.9.32
+      image: ghcr.io/tiny-systems/common-module:0.9.33
+      version: 0.9.33
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
     source: github.com/tiny-systems/communication-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: SMTP Email Sender
         info: Sends email using SMTP protocol
@@ -305,15 +305,15 @@ modules:
         tags:
         - Slack
         - IM
-      image: ghcr.io/tiny-systems/communication-module:0.3.21
-      version: 0.3.21
+      image: ghcr.io/tiny-systems/communication-module:0.3.22
+      version: 0.3.22
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
     source: github.com/tiny-systems/crypto-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Certificate Generator
         info: Generate a self-signed TLS certificate with optional SANs. Use for K8s
@@ -361,15 +361,15 @@ modules:
         - Signature
         - Security
         - Crypto
-      image: ghcr.io/tiny-systems/crypto-module:0.4.5
-      version: 0.4.5
+      image: ghcr.io/tiny-systems/crypto-module:0.4.6
+      version: 0.4.6
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
     source: github.com/tiny-systems/database-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Postgres Exec
         info: Executes INSERT/UPDATE/DELETE against Postgres with positional parameters.
@@ -440,15 +440,15 @@ modules:
         - pgvector
         - RAG
         - DB
-      image: ghcr.io/tiny-systems/database-module:0.6.18
-      version: 0.6.18
+      image: ghcr.io/tiny-systems/database-module:0.6.19
+      version: 0.6.19
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
     source: github.com/tiny-systems/distribution-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Registry Catalog
         info: List all repositories and their tags from a container registry. Supports
@@ -471,15 +471,15 @@ modules:
         - Container
         - Copy
         - Replicate
-      image: ghcr.io/tiny-systems/distribution-module:0.10.19
-      version: 0.10.19
+      image: ghcr.io/tiny-systems/distribution-module:0.10.20
+      version: 0.10.20
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
     source: github.com/tiny-systems/embedding-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Embed Text
         info: Calls a HuggingFace text-embeddings-inference (TEI) endpoint and emits
@@ -492,15 +492,15 @@ modules:
         - TEI
         - Vectors
         - RAG
-      image: ghcr.io/tiny-systems/embedding-module:0.0.23
-      version: 0.0.23
+      image: ghcr.io/tiny-systems/embedding-module:0.0.24
+      version: 0.0.24
   encoding-module:
     category: core
     description: Encoding — JSON, XML, CSV, JWT, Go templates and text chunking
     source: github.com/tiny-systems/encoding-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: CSV Decoder
         info: 'Parses CSV into one object per row, with quoting, embedded newlines
@@ -590,15 +590,15 @@ modules:
         name: xml_encode
         tags:
         - xml
-      image: ghcr.io/tiny-systems/encoding-module:0.6.18
-      version: 0.6.18
+      image: ghcr.io/tiny-systems/encoding-module:0.6.19
+      version: 0.6.19
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
     source: github.com/tiny-systems/googleapis-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Exchange Auth Code
         info: Exchanges Auth code to Auth token
@@ -700,15 +700,15 @@ modules:
         - google
         - firestore
         - db
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.20
-      version: 0.3.20
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.21
+      version: 0.3.21
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
     source: github.com/tiny-systems/grpc-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: gRPC request
         info: 'Calls a unary gRPC method on a remote server. Services, methods and
@@ -725,8 +725,8 @@ modules:
         tags:
         - grpc
         - client
-      image: ghcr.io/tiny-systems/grpc-module:0.4.21
-      version: 0.4.21
+      image: ghcr.io/tiny-systems/grpc-module:0.4.22
+      version: 0.4.22
   http-module:
     category: net
     description: HTTP client and server components
@@ -804,7 +804,7 @@ modules:
         - HTTP
         - Server
         - sync_rpc
-      image: ghcr.io/tiny-systems/http-module:0.5.45
+      image: ghcr.io/tiny-systems/http-module:0.5.46
       values: |
         # http_server exposes itself through a Service and an Ingress. Everything the
         # SDK's resource manager writes is scoped to its own release namespace — all
@@ -837,7 +837,7 @@ modules:
             - get
             - list
             - update
-      version: 0.5.45
+      version: 0.5.46
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
@@ -845,7 +845,7 @@ modules:
     source: github.com/tiny-systems/js-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: JS Eval
         info: 'Escape hatch: run arbitrary logic inline when no typed component does
@@ -866,8 +866,8 @@ modules:
         - js
         - javascript
         - engine
-      image: ghcr.io/tiny-systems/js-module:0.3.24
-      version: 0.3.24
+      image: ghcr.io/tiny-systems/js-module:0.3.25
+      version: 0.3.25
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -1086,7 +1086,7 @@ modules:
         tags:
         - Kubernetes
         - Restart
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.22
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.23
       values: |
         # enableKubernetesResourceAccess is a bundle: pods, deployments, services and
         # ingresses, every one of them with update, cluster-wide. This module reads
@@ -1201,14 +1201,14 @@ modules:
             verbs:
             - get
             - list
-      version: 0.8.22
+      version: 0.8.23
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
     source: github.com/tiny-systems/llm-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: LLM Chat
         info: 'Stateless multi-turn conversation primitive. Caller supplies the full
@@ -1317,8 +1317,8 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/llm-module:0.10.30
-      version: 0.10.30
+      image: ghcr.io/tiny-systems/llm-module:0.10.31
+      version: 0.10.31
   storage-module:
     category: data
     description: S3-compatible blob storage — put, get, list, and presign objects
@@ -1326,7 +1326,7 @@ modules:
     source: github.com/tiny-systems/storage-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Blob Get
         info: 'Downloads an object from an S3-compatible store (AWS S3, MinIO, Cloudflare
@@ -1403,15 +1403,15 @@ modules:
         - MinIO
         - Blob
         - Upload
-      image: ghcr.io/tiny-systems/storage-module:0.1.5
-      version: 0.1.5
+      image: ghcr.io/tiny-systems/storage-module:0.1.6
+      version: 0.1.6
   store-module:
     category: data
     description: Document store — persist and query JSON documents
     source: github.com/tiny-systems/store-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: Conversation Memory
         info: 'Atomic conversation memory for llm_chat — keyed by conversationId,
@@ -1450,15 +1450,15 @@ modules:
         - Persistence
         - bbolt
         - Embedded
-      image: ghcr.io/tiny-systems/store-module:0.2.5
-      version: 0.2.5
+      image: ghcr.io/tiny-systems/store-module:0.2.6
+      version: 0.2.6
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
     source: github.com/tiny-systems/wasm-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.10
+      chartVersion: 0.2.12
       components:
       - description: WASM Eval
         info: 'Escape hatch for PRODUCED agents: run arbitrary compiled logic inline
@@ -1480,5 +1480,5 @@ modules:
         - tinygo
         - eval
         - engine
-      image: ghcr.io/tiny-systems/wasm-module:0.3.19
-      version: 0.3.19
+      image: ghcr.io/tiny-systems/wasm-module:0.3.20
+      version: 0.3.20
