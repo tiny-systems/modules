@@ -11,7 +11,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/swaggest/jsonschema-go v0.3.79
-	github.com/tiny-systems/module v0.13.117
+	github.com/tiny-systems/module v0.13.119
 	k8s.io/api v0.35.1
 	k8s.io/apimachinery v0.35.1
 	sigs.k8s.io/controller-runtime v0.20.2
