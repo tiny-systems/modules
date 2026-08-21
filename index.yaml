@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-21T11:33:11Z"
+generated: "2026-08-21T14:49:23Z"
 modules:
   common-module:
     category: core
@@ -264,8 +264,8 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/common-module:0.9.33
-      version: 0.9.33
+      image: ghcr.io/tiny-systems/common-module:0.9.34
+      version: 0.9.34
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
@@ -305,8 +305,8 @@ modules:
         tags:
         - Slack
         - IM
-      image: ghcr.io/tiny-systems/communication-module:0.3.22
-      version: 0.3.22
+      image: ghcr.io/tiny-systems/communication-module:0.3.23
+      version: 0.3.23
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
@@ -361,8 +361,8 @@ modules:
         - Signature
         - Security
         - Crypto
-      image: ghcr.io/tiny-systems/crypto-module:0.4.6
-      version: 0.4.6
+      image: ghcr.io/tiny-systems/crypto-module:0.4.7
+      version: 0.4.7
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
@@ -440,8 +440,8 @@ modules:
         - pgvector
         - RAG
         - DB
-      image: ghcr.io/tiny-systems/database-module:0.6.19
-      version: 0.6.19
+      image: ghcr.io/tiny-systems/database-module:0.6.20
+      version: 0.6.20
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
@@ -471,8 +471,8 @@ modules:
         - Container
         - Copy
         - Replicate
-      image: ghcr.io/tiny-systems/distribution-module:0.10.20
-      version: 0.10.20
+      image: ghcr.io/tiny-systems/distribution-module:0.10.21
+      version: 0.10.21
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
@@ -492,8 +492,8 @@ modules:
         - TEI
         - Vectors
         - RAG
-      image: ghcr.io/tiny-systems/embedding-module:0.0.24
-      version: 0.0.24
+      image: ghcr.io/tiny-systems/embedding-module:0.0.25
+      version: 0.0.25
   encoding-module:
     category: core
     description: Encoding — JSON, XML, CSV, JWT, Go templates and text chunking
@@ -590,8 +590,8 @@ modules:
         name: xml_encode
         tags:
         - xml
-      image: ghcr.io/tiny-systems/encoding-module:0.6.19
-      version: 0.6.19
+      image: ghcr.io/tiny-systems/encoding-module:0.6.20
+      version: 0.6.20
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
@@ -700,8 +700,8 @@ modules:
         - google
         - firestore
         - db
-      image: ghcr.io/tiny-systems/googleapis-module:0.3.21
-      version: 0.3.21
+      image: ghcr.io/tiny-systems/googleapis-module:0.3.22
+      version: 0.3.22
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
@@ -725,8 +725,8 @@ modules:
         tags:
         - grpc
         - client
-      image: ghcr.io/tiny-systems/grpc-module:0.4.22
-      version: 0.4.22
+      image: ghcr.io/tiny-systems/grpc-module:0.4.23
+      version: 0.4.23
   http-module:
     category: net
     description: HTTP client and server components
@@ -804,7 +804,7 @@ modules:
         - HTTP
         - Server
         - sync_rpc
-      image: ghcr.io/tiny-systems/http-module:0.5.46
+      image: ghcr.io/tiny-systems/http-module:0.5.47
       values: |
         # http_server exposes itself through a Service and an Ingress. Everything the
         # SDK's resource manager writes is scoped to its own release namespace — all
@@ -837,7 +837,7 @@ modules:
             - get
             - list
             - update
-      version: 0.5.46
+      version: 0.5.47
   js-module:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
@@ -866,8 +866,8 @@ modules:
         - js
         - javascript
         - engine
-      image: ghcr.io/tiny-systems/js-module:0.3.25
-      version: 0.3.25
+      image: ghcr.io/tiny-systems/js-module:0.3.26
+      version: 0.3.26
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
@@ -1086,7 +1086,7 @@ modules:
         tags:
         - Kubernetes
         - Restart
-      image: ghcr.io/tiny-systems/kubernetes-module:0.8.23
+      image: ghcr.io/tiny-systems/kubernetes-module:0.8.24
       values: |
         # enableKubernetesResourceAccess is a bundle: pods, deployments, services and
         # ingresses, every one of them with update, cluster-wide. This module reads
@@ -1201,7 +1201,7 @@ modules:
             verbs:
             - get
             - list
-      version: 0.8.23
+      version: 0.8.24
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
@@ -1317,8 +1317,8 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/llm-module:0.10.31
-      version: 0.10.31
+      image: ghcr.io/tiny-systems/llm-module:0.10.32
+      version: 0.10.32
   storage-module:
     category: data
     description: S3-compatible blob storage — put, get, list, and presign objects
@@ -1403,8 +1403,8 @@ modules:
         - MinIO
         - Blob
         - Upload
-      image: ghcr.io/tiny-systems/storage-module:0.1.6
-      version: 0.1.6
+      image: ghcr.io/tiny-systems/storage-module:0.1.7
+      version: 0.1.7
   store-module:
     category: data
     description: Document store — persist and query JSON documents
@@ -1450,8 +1450,8 @@ modules:
         - Persistence
         - bbolt
         - Embedded
-      image: ghcr.io/tiny-systems/store-module:0.2.6
-      version: 0.2.6
+      image: ghcr.io/tiny-systems/store-module:0.2.7
+      version: 0.2.7
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
@@ -1480,5 +1480,5 @@ modules:
         - tinygo
         - eval
         - engine
-      image: ghcr.io/tiny-systems/wasm-module:0.3.20
-      version: 0.3.20
+      image: ghcr.io/tiny-systems/wasm-module:0.3.21
+      version: 0.3.21
