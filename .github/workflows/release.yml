@@ -5,9 +5,17 @@
 # the union of every module's permissions, so what collapses here is the
 # release chore, not the isolation.
 #
-# The images keep the names they have always had —
-# ghcr.io/tiny-systems/<module>:<version> — so every catalogue entry and every
-# installed cluster keeps resolving. Only the source of the build moved.
+# Images publish as ghcr.io/tiny-systems/modules/<module>:<version>.
+#
+# They used to be ghcr.io/tiny-systems/<module>, created by the eighteen
+# repositories that are now archived. GHCR binds a package to the repository
+# that created it, that binding cannot be changed (no API, and the org UI's
+# repository picker lists a fixed page that does not include this repo), and a
+# token issued here is therefore denied write. A package created BY this
+# repository has no such problem.
+#
+# Nothing breaks: a running cluster pins the image it installed, and the old
+# packages remain readable at every version up to 0.11.0.
 name: Publish module images to GHCR
 
 on:
@@ -89,8 +97,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/tiny-systems/${{ matrix.module }}:${{ steps.v.outputs.version }}
-            ghcr.io/tiny-systems/${{ matrix.module }}:latest
+            ghcr.io/tiny-systems/modules/${{ matrix.module }}:${{ steps.v.outputs.version }}
+            ghcr.io/tiny-systems/modules/${{ matrix.module }}:latest
           build-args: |
             VERSION=${{ steps.v.outputs.version }}
             MODULE=${{ matrix.module }}
