@@ -3,7 +3,7 @@ source: github.com/tiny-systems/storage-module
 description: S3-compatible blob storage — put, get, list, and presign objects (S3, MinIO, R2, GCS interop)
 category: data
 versions:
-- version: 0.1.7
-  image: ghcr.io/tiny-systems/storage-module:0.1.7
+- version: 0.1.8
+  image: ghcr.io/tiny-systems/storage-module:0.1.8
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12
