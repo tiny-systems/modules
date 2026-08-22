@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"

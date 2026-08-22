@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,10 +32,10 @@ type Settings struct {
 
 // Request is the input to delete a pod
 type Request struct {
-	Context       Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Namespace     string  `json:"namespace" required:"true" title:"Namespace" description:"Pod namespace"`
-	Name          string  `json:"name" required:"true" title:"Name" description:"Pod name"`
-	GracePeriod   int64   `json:"gracePeriod,omitempty" title:"Grace Period" description:"Seconds to wait before force kill (0 = immediate)"`
+	Context     Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
+	Namespace   string  `json:"namespace" required:"true" title:"Namespace" description:"Pod namespace"`
+	Name        string  `json:"name" required:"true" title:"Name" description:"Pod name"`
+	GracePeriod int64   `json:"gracePeriod,omitempty" title:"Grace Period" description:"Seconds to wait before force kill (0 = immediate)"`
 }
 
 // Result is the output after pod deletion

@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

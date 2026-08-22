@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -269,7 +269,7 @@ func (c *Component) Ports() []module.Port {
 						UpdatedReplicas:   3,
 						Image:             "myapp:v1.0.0",
 						Containers:        []ContainerInfo{{Name: "myapp-api", Image: "myapp:v1.0.0"}},
-					ImagePullSecrets:  []string{"regcred"},
+						ImagePullSecrets:  []string{"regcred"},
 						Strategy:          "RollingUpdate",
 						Age:               "24h",
 						Ready:             true,

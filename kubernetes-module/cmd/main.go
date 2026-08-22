@@ -1,43 +1,43 @@
 package main
 
 import (
-  "context"
-  "fmt"
-  "os"
-  "os/signal"
-  "syscall"
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
-  "github.com/rs/zerolog"
-  "github.com/spf13/cobra"
-  "github.com/spf13/viper"
-  "github.com/tiny-systems/module/cli"
-  "github.com/tiny-systems/module/module"
-  "github.com/tiny-systems/module/registry"
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/tiny-systems/module/cli"
+	"github.com/tiny-systems/module/module"
+	"github.com/tiny-systems/module/registry"
 
-  // Import components to register them
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/customresourcelist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/configmappatch"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/daemonsetlist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/deploymentlist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/deploymentscale"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/deploymentupdate"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/eventwatcher"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podcreate"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/poddelete"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podlist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podlogs"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podlogswatch"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podstatus"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podupdate"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/podwatcher"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/sandboxrun"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/servicelist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/serviceupdate"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/statefulsetlist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/workloadlist"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/secretget"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/webhookregister"
-  _ "github.com/tiny-systems/modules/kubernetes-module/components/workloadrestart"
+	// Import components to register them
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/configmappatch"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/customresourcelist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/daemonsetlist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/deploymentlist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/deploymentscale"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/deploymentupdate"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/eventwatcher"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podcreate"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/poddelete"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podlist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podlogs"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podlogswatch"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podstatus"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podupdate"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/podwatcher"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/sandboxrun"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/secretget"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/servicelist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/serviceupdate"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/statefulsetlist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/webhookregister"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/workloadlist"
+	_ "github.com/tiny-systems/modules/kubernetes-module/components/workloadrestart"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -57,84 +57,95 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	// Declare RBAC requirements for kubernetes-module
+	// Declare RBAC requirements for kubernetes-module.
+	//
+	// EnableKubernetesResourceAccess is deliberately OFF. It was a bundle —
+	// pods, services, deployments and ingresses, every one with update, cluster
+	// wide — and this module reads pods and restarts workloads; it has never
+	// written a Service or an Ingress. The bundle handed it the ability to
+	// repoint any Service and rewrite any Ingress in the cluster. The reads it
+	// actually needs are spelled out below instead.
+	//
+	// No cluster-wide "*/*" read wildcard either: that granted read of every
+	// object including all Secrets. resource_watch / custom_resource_list on
+	// arbitrary kinds therefore are not covered here — grant a
+	// resource-specific rule (ideally resourceNames-pinned) at install time
+	// when a deployment genuinely needs one.
 	registry.SetRequirements(module.Requirements{
 		RBAC: module.RBACRequirements{
-			// Enable base K8s resource access (pods, services, configmaps, secrets, etc.)
-			EnableKubernetesResourceAccess: true,
-			// Additional rules beyond the base access above. Least-privilege:
-			// NO cluster-wide "*/*" read wildcard — it granted read of every
-			// object incl. all Secrets. resource_watch / custom_resource_list /
-			// secret_get on arbitrary resources therefore aren't covered here;
-			// scope a resource-specific rule (ideally resourceNames-pinned) when
-			// a deployment genuinely needs one, so the ServiceAccount never gets
-			// blanket cluster read.
+			// Cluster-wide, because these components read across namespaces:
+			// pod_list, pod_watch and workload_restart are all pointed at a
+			// namespace by the caller, not fixed to the module's own.
 			ExtraRules: []module.RBACRule{
-				// Deployments update - for restart/scale operations
+				// Reads that replace the disabled bundle — no write verbs.
+				{
+					APIGroups: []string{""},
+					Resources: []string{"pods", "services"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+				{
+					APIGroups: []string{"apps"},
+					Resources: []string{"deployments"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+				{
+					APIGroups: []string{"networking.k8s.io"},
+					Resources: []string{"ingresses"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+				// Deployments update — for restart/scale operations.
 				{
 					APIGroups: []string{"apps"},
 					Resources: []string{"deployments"},
 					Verbs:     []string{"update", "patch"},
 				},
-				// StatefulSets and DaemonSets - workload_list and
-				// workload_restart treat all three kinds alike, but the base
-				// access flag covers only Deployments.
+				// StatefulSets and DaemonSets — workload_list and
+				// workload_restart treat all three kinds alike.
 				{
 					APIGroups: []string{"apps"},
 					Resources: []string{"statefulsets", "daemonsets"},
 					Verbs:     []string{"get", "list", "watch", "update", "patch"},
 				},
-				// ConfigMaps - for configmap_patch, which reads the ConfigMap
-				// before upserting a key.
 				{
 					APIGroups: []string{""},
 					Resources: []string{"configmaps"},
 					Verbs:     []string{"get", "create", "update", "patch"},
 				},
-				// Secrets read - for secret_get. Lost when the cluster-wide
-				// read wildcard was dropped for least privilege, which left the
-				// component unable to do the one thing it exists for.
-				{
-					APIGroups: []string{""},
-					Resources: []string{"secrets"},
-					Verbs:     []string{"get", "list"},
-				},
-				// Events read - for event_watch, lost the same way.
 				{
 					APIGroups: []string{""},
 					Resources: []string{"events"},
 					Verbs:     []string{"get", "list", "watch"},
 				},
-				// MutatingWebhookConfigurations - for webhook_register component
 				{
 					APIGroups: []string{"admissionregistration.k8s.io"},
 					Resources: []string{"mutatingwebhookconfigurations"},
 					Verbs:     []string{"get", "create", "update", "delete"},
 				},
-				// Pod logs access
 				{
 					APIGroups: []string{""},
 					Resources: []string{"pods/log"},
 					Verbs:     []string{"get"},
 				},
-				// Pod create/delete — for pod_create and pod_delete. The base
-				// access flag above grants only get/list/patch/update/watch, so
-				// without this both components fail with a 403 the moment they
-				// are used on a self-hosted install. The drift gate cannot
-				// catch a gap like this: it compares the overlay against the
-				// declaration, never the declaration against the API calls the
-				// code actually makes.
 				{
 					APIGroups: []string{""},
 					Resources: []string{"pods"},
 					Verbs:     []string{"create", "delete"},
 				},
-				// Jobs — for sandbox_run, which creates one per script and
-				// removes it when the script finishes.
+				// sandbox_run's unit of work.
 				{
 					APIGroups: []string{"batch"},
 					Resources: []string{"jobs"},
 					Verbs:     []string{"create", "get", "list", "watch", "delete"},
+				},
+			},
+			// The module's own namespace only. Reading Secrets cluster-wide to
+			// reach the few in the release namespace is the single broadest
+			// thing this module could ask for.
+			ExtraNamespacedRules: []module.RBACRule{
+				{
+					APIGroups: []string{""},
+					Resources: []string{"secrets"},
+					Verbs:     []string{"get", "list"},
 				},
 			},
 		},

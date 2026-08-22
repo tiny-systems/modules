@@ -6,14 +6,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tiny-systems/module/cli"
+	"github.com/tiny-systems/module/module"
+	"github.com/tiny-systems/module/registry"
 	_ "github.com/tiny-systems/modules/http-module/components/basicauth/header-parser"
 	_ "github.com/tiny-systems/modules/http-module/components/client"
 	_ "github.com/tiny-systems/modules/http-module/components/logql"
 	_ "github.com/tiny-systems/modules/http-module/components/promql"
 	_ "github.com/tiny-systems/modules/http-module/components/server"
-	"github.com/tiny-systems/module/cli"
-	"github.com/tiny-systems/module/module"
-	"github.com/tiny-systems/module/registry"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,10 +36,15 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	// Declare RBAC requirements for http-module (ExposePort functionality)
+	// Declare RBAC requirements for http-module (ExposePort functionality).
+	//
+	// Namespaced, not cluster-wide: exposing a port means creating a Service
+	// and an Ingress in the module's OWN namespace. Granted cluster-wide, the
+	// same rules let this repoint any Service and rewrite any Ingress in the
+	// cluster — which is what they used to do.
 	registry.SetRequirements(module.Requirements{
 		RBAC: module.RBACRequirements{
-			ExtraRules: []module.RBACRule{
+			ExtraNamespacedRules: []module.RBACRule{
 				{
 					APIGroups: []string{""},
 					Resources: []string{"pods"},

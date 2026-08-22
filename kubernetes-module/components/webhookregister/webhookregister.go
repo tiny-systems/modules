@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,10 +32,10 @@ type Settings struct {
 }
 
 type Rule struct {
-	Operations []string `json:"operations" title:"Operations" description:"CREATE, UPDATE, DELETE" required:"true"`
-	APIGroups  []string `json:"apiGroups" title:"API Groups" description:"e.g. apps, '' (core)"`
+	Operations  []string `json:"operations" title:"Operations" description:"CREATE, UPDATE, DELETE" required:"true"`
+	APIGroups   []string `json:"apiGroups" title:"API Groups" description:"e.g. apps, '' (core)"`
 	APIVersions []string `json:"apiVersions" title:"API Versions" description:"e.g. v1"`
-	Resources  []string `json:"resources" title:"Resources" description:"e.g. deployments, pods"`
+	Resources   []string `json:"resources" title:"Resources" description:"e.g. deployments, pods"`
 }
 
 type Request struct {
@@ -332,8 +332,8 @@ func (c *Component) Ports() []module.Port {
 			Position: module.Left,
 		},
 		{
-			Name:  ResultPort,
-			Label: "Result",
+			Name:   ResultPort,
+			Label:  "Result",
 			Source: true,
 			Configuration: Result{
 				Name:      "image-policy",

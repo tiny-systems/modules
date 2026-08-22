@@ -26,13 +26,13 @@ type PodInfo struct {
 
 // PodStatus is the aggregated status of pods
 type PodStatus struct {
-	Total     int    `json:"total"`
-	Running   int    `json:"running"`
-	Pending   int    `json:"pending"`
-	Failed    int    `json:"failed"`
-	Succeeded int    `json:"succeeded"`
-	Healthy   bool   `json:"healthy"`
-	Summary   string `json:"summary"`
+	Total     int       `json:"total"`
+	Running   int       `json:"running"`
+	Pending   int       `json:"pending"`
+	Failed    int       `json:"failed"`
+	Succeeded int       `json:"succeeded"`
+	Healthy   bool      `json:"healthy"`
+	Summary   string    `json:"summary"`
 	Pods      []PodInfo `json:"pods"`
 }
 
@@ -113,7 +113,6 @@ func GetPodLogs(ctx context.Context, k8sClient client.Client, restClient RESTCli
 		Lines:     int(lines),
 	}, nil
 }
-
 
 // FindPod finds a single pod by exact name
 func FindPod(ctx context.Context, k8sClient client.Client, namespace, name string) (*corev1.Pod, error) {

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -206,7 +206,6 @@ func (c *Component) Handle(ctx context.Context, handler module.Handler, port str
 
 	return module.Fail(c.runWatch(ctx, handler, in))
 }
-
 
 func (c *Component) getWatchDone() chan struct{} {
 	c.watchDoneLock.Lock()

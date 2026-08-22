@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
+	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -32,10 +32,10 @@ type Settings struct {
 
 // Request is the input to restart a workload
 type Request struct {
-	Context       Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Namespace     string  `json:"namespace" required:"true" title:"Namespace" description:"Kubernetes namespace"`
-	Name          string  `json:"name" required:"true" title:"Name" description:"Resource name"`
-	Kind          string  `json:"kind" required:"true" title:"Kind" description:"Resource kind: Deployment, StatefulSet, or DaemonSet" enum:"Deployment,StatefulSet,DaemonSet"`
+	Context   Context `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
+	Namespace string  `json:"namespace" required:"true" title:"Namespace" description:"Kubernetes namespace"`
+	Name      string  `json:"name" required:"true" title:"Name" description:"Resource name"`
+	Kind      string  `json:"kind" required:"true" title:"Kind" description:"Resource kind: Deployment, StatefulSet, or DaemonSet" enum:"Deployment,StatefulSet,DaemonSet"`
 }
 
 // Result is the output with restart result

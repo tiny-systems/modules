@@ -1,18 +1,15 @@
-# enableKubernetesResourceAccess is a bundle: pods, deployments, services and
-# ingresses, every one of them with update, cluster-wide. This module reads
-# pods and restarts workloads; it has never written a Service or an Ingress.
-# The bundle handed it the ability to repoint any service and rewrite any
-# ingress in the cluster.
-#
-# Spelled out instead: read what it reads, write only the workloads it exists
-# to restart. custom_resource_list keeps working for these kinds and reports a
-# 403 with the helm command for anything else, which is its documented
-# contract.
 rbac:
-  enableKubernetesResourceAccess: false
+  extraNamespacedRules:
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
   extraRules:
   - apiGroups:
-    - ''
+    - ""
     resources:
     - pods
     - services
@@ -55,7 +52,7 @@ rbac:
     - update
     - patch
   - apiGroups:
-    - ''
+    - ""
     resources:
     - configmaps
     verbs:
@@ -64,7 +61,7 @@ rbac:
     - update
     - patch
   - apiGroups:
-    - ''
+    - ""
     resources:
     - events
     verbs:
@@ -81,13 +78,13 @@ rbac:
     - update
     - delete
   - apiGroups:
-    - ''
+    - ""
     resources:
     - pods/log
     verbs:
     - get
   - apiGroups:
-    - ''
+    - ""
     resources:
     - pods
     verbs:
@@ -103,11 +100,3 @@ rbac:
     - list
     - watch
     - delete
-  extraNamespacedRules:
-  - apiGroups:
-    - ''
-    resources:
-    - secrets
-    verbs:
-    - get
-    - list

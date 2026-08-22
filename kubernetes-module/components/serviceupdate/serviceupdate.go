@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,15 +59,15 @@ type ResultServicePort struct {
 
 // Result is the output after service update
 type Result struct {
-	Context     Context             `json:"context,omitempty" title:"Context"`
-	Name        string              `json:"name" title:"Name"`
-	Namespace   string              `json:"namespace" title:"Namespace"`
-	Type        string              `json:"type" title:"Type"`
-	ClusterIP   string              `json:"clusterIP" title:"Cluster IP"`
-	Selector    map[string]string   `json:"selector,omitempty" title:"Selector"`
-	Ports       []ResultServicePort `json:"ports,omitempty" title:"Ports"`
-	Success     bool                `json:"success" title:"Success"`
-	Message     string              `json:"message" title:"Message"`
+	Context   Context             `json:"context,omitempty" title:"Context"`
+	Name      string              `json:"name" title:"Name"`
+	Namespace string              `json:"namespace" title:"Namespace"`
+	Type      string              `json:"type" title:"Type"`
+	ClusterIP string              `json:"clusterIP" title:"Cluster IP"`
+	Selector  map[string]string   `json:"selector,omitempty" title:"Selector"`
+	Ports     []ResultServicePort `json:"ports,omitempty" title:"Ports"`
+	Success   bool                `json:"success" title:"Success"`
+	Message   string              `json:"message" title:"Message"`
 }
 
 // Error output

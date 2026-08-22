@@ -4,9 +4,9 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"fmt"
-	"github.com/tiny-systems/modules/http-module/components/etc"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/http-module/components/etc"
 	"strings"
 )
 

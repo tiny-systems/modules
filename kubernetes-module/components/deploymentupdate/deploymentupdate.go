@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -65,17 +65,17 @@ type ContainerResources struct {
 
 // Request is the input to update a deployment
 type Request struct {
-	Context     Context           `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
-	Namespace   string            `json:"namespace" required:"true" title:"Namespace" description:"Deployment namespace"`
-	Name        string            `json:"name" required:"true" title:"Name" description:"Deployment name"`
-	Replicas    *int32            `json:"replicas,omitempty" title:"Replicas" description:"Desired replica count"`
-	Images      []ContainerImage  `json:"images,omitempty" title:"Images" description:"Container images to update"`
-	EnvUpdates  []ContainerEnv    `json:"envUpdates,omitempty" title:"Environment Updates" description:"Container environment variables to update"`
-	Resources   []ContainerResources `json:"resources,omitempty" title:"Resources" description:"Container resources to update"`
-	Labels      map[string]string `json:"labels,omitempty" configurable:"true" title:"Labels" description:"Labels to merge into deployment metadata"`
-	Annotations map[string]string `json:"annotations,omitempty" configurable:"true" title:"Annotations" description:"Annotations to merge into deployment metadata"`
-	PodLabels   map[string]string `json:"podLabels,omitempty" configurable:"true" title:"Pod Labels" description:"Labels to merge into pod template"`
-	PodAnnotations map[string]string `json:"podAnnotations,omitempty" configurable:"true" title:"Pod Annotations" description:"Annotations to merge into pod template"`
+	Context        Context              `json:"context,omitempty" configurable:"true" title:"Context" description:"Arbitrary context to pass through"`
+	Namespace      string               `json:"namespace" required:"true" title:"Namespace" description:"Deployment namespace"`
+	Name           string               `json:"name" required:"true" title:"Name" description:"Deployment name"`
+	Replicas       *int32               `json:"replicas,omitempty" title:"Replicas" description:"Desired replica count"`
+	Images         []ContainerImage     `json:"images,omitempty" title:"Images" description:"Container images to update"`
+	EnvUpdates     []ContainerEnv       `json:"envUpdates,omitempty" title:"Environment Updates" description:"Container environment variables to update"`
+	Resources      []ContainerResources `json:"resources,omitempty" title:"Resources" description:"Container resources to update"`
+	Labels         map[string]string    `json:"labels,omitempty" configurable:"true" title:"Labels" description:"Labels to merge into deployment metadata"`
+	Annotations    map[string]string    `json:"annotations,omitempty" configurable:"true" title:"Annotations" description:"Annotations to merge into deployment metadata"`
+	PodLabels      map[string]string    `json:"podLabels,omitempty" configurable:"true" title:"Pod Labels" description:"Labels to merge into pod template"`
+	PodAnnotations map[string]string    `json:"podAnnotations,omitempty" configurable:"true" title:"Pod Annotations" description:"Annotations to merge into pod template"`
 }
 
 // ContainerInfo represents container info in result
@@ -86,14 +86,14 @@ type ContainerInfo struct {
 
 // Result is the output after deployment update
 type Result struct {
-	Context          Context         `json:"context,omitempty" title:"Context"`
-	Name             string          `json:"name" title:"Name"`
-	Namespace        string          `json:"namespace" title:"Namespace"`
-	Replicas         int32           `json:"replicas" title:"Replicas"`
-	ReadyReplicas    int32           `json:"readyReplicas" title:"Ready Replicas"`
-	Containers       []ContainerInfo `json:"containers" title:"Containers"`
-	Success          bool            `json:"success" title:"Success"`
-	Message          string          `json:"message" title:"Message"`
+	Context       Context         `json:"context,omitempty" title:"Context"`
+	Name          string          `json:"name" title:"Name"`
+	Namespace     string          `json:"namespace" title:"Namespace"`
+	Replicas      int32           `json:"replicas" title:"Replicas"`
+	ReadyReplicas int32           `json:"readyReplicas" title:"Ready Replicas"`
+	Containers    []ContainerInfo `json:"containers" title:"Containers"`
+	Success       bool            `json:"success" title:"Success"`
+	Message       string          `json:"message" title:"Message"`
 }
 
 // Error output
