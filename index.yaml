@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-22T19:13:32Z"
+generated: "2026-08-22T19:22:20Z"
 modules:
   common-module:
     category: core
@@ -7,7 +7,7 @@ modules:
     source: github.com/tiny-systems/modules/common-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Array Filter
         info: Keeps the array elements matching a JSONPath predicate, and counts them.
@@ -272,7 +272,7 @@ modules:
     source: github.com/tiny-systems/modules/communication-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: SMTP Email Sender
         info: Sends email using SMTP protocol
@@ -313,7 +313,7 @@ modules:
     source: github.com/tiny-systems/modules/crypto-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Certificate Generator
         info: Generate a self-signed TLS certificate with optional SANs. Use for K8s
@@ -369,7 +369,7 @@ modules:
     source: github.com/tiny-systems/modules/database-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Postgres Exec
         info: Executes INSERT/UPDATE/DELETE against Postgres with positional parameters.
@@ -448,7 +448,7 @@ modules:
     source: github.com/tiny-systems/modules/distribution-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Registry Catalog
         info: List all repositories and their tags from a container registry. Supports
@@ -479,7 +479,7 @@ modules:
     source: github.com/tiny-systems/modules/embedding-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Embed Text
         info: Calls a HuggingFace text-embeddings-inference (TEI) endpoint and emits
@@ -500,7 +500,7 @@ modules:
     source: github.com/tiny-systems/modules/encoding-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: CSV Decoder
         info: 'Parses CSV into one object per row, with quoting, embedded newlines
@@ -598,7 +598,7 @@ modules:
     source: github.com/tiny-systems/modules/googleapis-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Exchange Auth Code
         info: Exchanges Auth code to Auth token
@@ -708,7 +708,7 @@ modules:
     source: github.com/tiny-systems/modules/grpc-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: gRPC request
         info: 'Calls a unary gRPC method on a remote server. Services, methods and
@@ -733,7 +733,7 @@ modules:
     source: github.com/tiny-systems/modules/http-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Basic Auth Headers Parser
         info: 'Extracts Basic Auth credentials from HTTP headers. In port receives:
@@ -838,7 +838,7 @@ modules:
     source: github.com/tiny-systems/modules/js-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: JS Eval
         info: 'Escape hatch: run arbitrary logic inline when no typed component does
@@ -867,7 +867,7 @@ modules:
     source: github.com/tiny-systems/modules/kubernetes-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: ConfigMap Patch
         info: 'Set or remove a key in a Kubernetes ConfigMap. On set: creates the
@@ -1190,7 +1190,7 @@ modules:
     source: github.com/tiny-systems/modules/llm-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: LLM Chat
         info: 'Stateless multi-turn conversation primitive. Caller supplies the full
@@ -1308,7 +1308,7 @@ modules:
     source: github.com/tiny-systems/modules/storage-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Blob Get
         info: 'Downloads an object from an S3-compatible store (AWS S3, MinIO, Cloudflare
@@ -1393,7 +1393,7 @@ modules:
     source: github.com/tiny-systems/modules/store-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: Conversation Memory
         info: 'Atomic conversation memory for llm_chat — keyed by conversationId,
@@ -1440,7 +1440,7 @@ modules:
     source: github.com/tiny-systems/modules/wasm-module
     versions:
     - chart: tinysystems/tinysystems-operator
-      chartVersion: 0.2.12
+      chartVersion: 0.2.13
       components:
       - description: WASM Eval
         info: 'Escape hatch for PRODUCED agents: run arbitrary compiled logic inline
