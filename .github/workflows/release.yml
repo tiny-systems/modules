@@ -41,6 +41,11 @@ jobs:
     strategy:
       fail-fast: false   # one module's registry hiccup must not strand the other 17
       matrix:
+        # Every module here must also be installable — it needs a module.yaml,
+        # or the release pushes an image nobody can reach. example-module and
+        # git-module are deliberately absent: both contain only an `echo`
+        # component. The first is scaffolding for writing a module; the second
+        # is a stub that never grew any git components despite the name.
         module:
           - common-module
           - communication-module
@@ -49,8 +54,6 @@ jobs:
           - distribution-module
           - embedding-module
           - encoding-module
-          - example-module
-          - git-module
           - googleapis-module
           - grpc-module
           - http-module
