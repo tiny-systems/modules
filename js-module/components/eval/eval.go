@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
-	"time"
 	"github.com/grafana/sobek"
-	"github.com/tiny-systems/modules/js-module/modules"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
+	"github.com/tiny-systems/modules/js-module/modules"
+	"sync"
 	"testing/fstest"
+	"time"
 )
 
 const (
@@ -305,4 +305,20 @@ var (
 
 func init() {
 	registry.Register(&Component{})
+
+	// This module can execute a TinyComponent whose runtime is "js". The SDK
+	// owns the resource and its controller; all a runtime contributes is the
+	// ability to turn a definition into something runnable.
+	registry.RegisterRuntime("js", func(d module.ComponentDefinition) (module.Component, error) {
+		return NewDefined(Definition{
+			Name:            d.Name,
+			Description:     d.Description,
+			Info:            d.Info,
+			Script:          d.Script,
+			InputSchema:     d.InputSchema,
+			OutputSchema:    d.OutputSchema,
+			EnableErrorPort: d.EnableErrorPort,
+			TimeoutSeconds:  d.TimeoutSeconds,
+		})
+	})
 }
