@@ -522,8 +522,8 @@ github.com/tiny-systems/errorpanic v0.7.1 h1:GgbimfhC2wnQ8012SGGxh743ryaJXSSD7bo
 github.com/tiny-systems/errorpanic v0.7.1/go.mod h1:AQobicdSB/J3RzN81pTG4dqgcULaEIrEOvNC8TpSgxw=
 github.com/tiny-systems/googleapis-module v0.3.23 h1:V6P+CBguisp1y1dzi+tSyKcfiyWFh2oarO1oYnQmBn4=
 github.com/tiny-systems/googleapis-module v0.3.23/go.mod h1:19GJ8SQB/6O7t8n7VdfyugdB6yd/tdzGz0b1MUcAu3k=
-github.com/tiny-systems/module v0.13.129 h1:TzPOouSSFSyjmU7m49CXXLLgS1uEqEFL7vDktTPI/tc=
-github.com/tiny-systems/module v0.13.129/go.mod h1:CQ9u7YsHoJVh8c/XDxUDl4ASIFjmpJf0PzhUHlGl+w0=
+github.com/tiny-systems/module v0.13.130 h1:2G6uec226FHzegwVC48f56QzFmBOKrudNhxnBeOsLcU=
+github.com/tiny-systems/module v0.13.130/go.mod h1:CQ9u7YsHoJVh8c/XDxUDl4ASIFjmpJf0PzhUHlGl+w0=
 github.com/tiny-systems/otel-collector v0.5.1 h1:tylLj7f7O7n5o9R383Lojd0fN7j5jgZ76zFshJ0SE6c=
 github.com/tiny-systems/otel-collector v0.5.1/go.mod h1:EGo1dQ3+5iG3ejGJ8y9kMgHhOGB6WyoasJDUHesKXEA=
 github.com/tiny-systems/wasm-module-v0 v0.3.22 h1:aV8+xy63/8JFLzrkVu0Tn1QG9G/orpzOy8p+T3jxRh8=

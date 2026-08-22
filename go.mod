@@ -29,7 +29,7 @@ require (
 	github.com/tetratelabs/wazero v1.11.0
 	github.com/tiny-systems/ajson v0.1.6
 	github.com/tiny-systems/googleapis-module v0.3.23
-	github.com/tiny-systems/module v0.13.129
+	github.com/tiny-systems/module v0.13.130
 	github.com/tiny-systems/wasm-module-v0 v0.3.22
 	github.com/wneessen/go-mail v0.7.1
 	go.etcd.io/bbolt v1.4.3
