@@ -4,6 +4,6 @@ description: Google Calendar, Firestore, and OAuth components
 category: google
 versions:
 - version: 0.12.1
-  image: ghcr.io/tiny-systems/modules/googleapis-module:0.12.0
+  image: ghcr.io/tiny-systems/modules/googleapis-module:0.12.1
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

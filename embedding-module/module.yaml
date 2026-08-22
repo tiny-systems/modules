@@ -4,6 +4,6 @@ description: Text embeddings for semantic / vector search
 category: ai
 versions:
 - version: 0.12.1
-  image: ghcr.io/tiny-systems/modules/embedding-module:0.12.0
+  image: ghcr.io/tiny-systems/modules/embedding-module:0.12.1
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

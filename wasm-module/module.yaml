@@ -4,6 +4,6 @@ description: WebAssembly — run WASM modules over flow data
 category: core
 versions:
 - version: 0.12.1
-  image: ghcr.io/tiny-systems/modules/wasm-module:0.12.0
+  image: ghcr.io/tiny-systems/modules/wasm-module:0.12.1
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

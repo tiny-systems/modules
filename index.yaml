@@ -1,5 +1,5 @@
 apiVersion: tiny/v2
-generated: "2026-08-22T18:40:08Z"
+generated: "2026-08-22T19:13:32Z"
 modules:
   common-module:
     category: core
@@ -264,7 +264,7 @@ modules:
         name: ticker
         tags:
         - SDK
-      image: ghcr.io/tiny-systems/modules/common-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/common-module:0.12.1
       version: 0.12.1
   communication-module:
     category: comms
@@ -305,7 +305,7 @@ modules:
         tags:
         - Slack
         - IM
-      image: ghcr.io/tiny-systems/modules/communication-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/communication-module:0.12.1
       version: 0.12.1
   crypto-module:
     category: security
@@ -361,7 +361,7 @@ modules:
         - Signature
         - Security
         - Crypto
-      image: ghcr.io/tiny-systems/modules/crypto-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/crypto-module:0.12.1
       version: 0.12.1
   database-module:
     category: data
@@ -440,7 +440,7 @@ modules:
         - pgvector
         - RAG
         - DB
-      image: ghcr.io/tiny-systems/modules/database-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/database-module:0.12.1
       version: 0.12.1
   distribution-module:
     category: infra
@@ -471,7 +471,7 @@ modules:
         - Container
         - Copy
         - Replicate
-      image: ghcr.io/tiny-systems/modules/distribution-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/distribution-module:0.12.1
       version: 0.12.1
   embedding-module:
     category: ai
@@ -492,7 +492,7 @@ modules:
         - TEI
         - Vectors
         - RAG
-      image: ghcr.io/tiny-systems/modules/embedding-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/embedding-module:0.12.1
       version: 0.12.1
   encoding-module:
     category: core
@@ -590,7 +590,7 @@ modules:
         name: xml_encode
         tags:
         - xml
-      image: ghcr.io/tiny-systems/modules/encoding-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/encoding-module:0.12.1
       version: 0.12.1
   googleapis-module:
     category: google
@@ -700,7 +700,7 @@ modules:
         - google
         - firestore
         - db
-      image: ghcr.io/tiny-systems/modules/googleapis-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/googleapis-module:0.12.1
       version: 0.12.1
   grpc-module:
     category: net
@@ -725,7 +725,7 @@ modules:
         tags:
         - grpc
         - client
-      image: ghcr.io/tiny-systems/modules/grpc-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/grpc-module:0.12.1
       version: 0.12.1
   http-module:
     category: net
@@ -804,7 +804,7 @@ modules:
         - HTTP
         - Server
         - sync_rpc
-      image: ghcr.io/tiny-systems/modules/http-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/http-module:0.12.1
       values: |
         rbac:
           extraNamespacedRules:
@@ -859,7 +859,7 @@ modules:
         - js
         - javascript
         - engine
-      image: ghcr.io/tiny-systems/modules/js-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/js-module:0.12.1
       version: 0.12.1
   kubernetes-module:
     category: infra
@@ -1079,7 +1079,7 @@ modules:
         tags:
         - Kubernetes
         - Restart
-      image: ghcr.io/tiny-systems/modules/kubernetes-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/kubernetes-module:0.12.1
       values: |
         rbac:
           extraNamespacedRules:
@@ -1299,7 +1299,7 @@ modules:
         tags:
         - MCP
         - Agent
-      image: ghcr.io/tiny-systems/modules/llm-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/llm-module:0.12.1
       version: 0.12.1
   storage-module:
     category: data
@@ -1385,7 +1385,7 @@ modules:
         - MinIO
         - Blob
         - Upload
-      image: ghcr.io/tiny-systems/modules/storage-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/storage-module:0.12.1
       version: 0.12.1
   store-module:
     category: data
@@ -1432,7 +1432,7 @@ modules:
         - Persistence
         - bbolt
         - Embedded
-      image: ghcr.io/tiny-systems/modules/store-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/store-module:0.12.1
       version: 0.12.1
   wasm-module:
     category: core
@@ -1462,5 +1462,5 @@ modules:
         - tinygo
         - eval
         - engine
-      image: ghcr.io/tiny-systems/modules/wasm-module:0.12.0
+      image: ghcr.io/tiny-systems/modules/wasm-module:0.12.1
       version: 0.12.1

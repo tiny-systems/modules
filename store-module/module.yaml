@@ -4,6 +4,6 @@ description: Document store — persist and query JSON documents
 category: data
 versions:
 - version: 0.12.1
-  image: ghcr.io/tiny-systems/modules/store-module:0.12.0
+  image: ghcr.io/tiny-systems/modules/store-module:0.12.1
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12
