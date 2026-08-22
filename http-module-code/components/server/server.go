@@ -1,0 +1,1130 @@
+package server
+
+import (
+	"context"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/goccy/go-json"
+	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
+	"github.com/tiny-systems/http-module/components/etc"
+	"github.com/tiny-systems/http-module/components/server/portmanager"
+	"github.com/tiny-systems/http-module/pkg/utils"
+	"github.com/tiny-systems/module/api/v1alpha1"
+	"github.com/tiny-systems/module/module"
+	moduleutils "github.com/tiny-systems/module/pkg/utils"
+	"github.com/tiny-systems/module/registry"
+)
+
+const (
+	ComponentName string = "http_server"
+	ResponsePort         = "response"
+	RequestPort          = "request"
+	StartPort            = "start"
+	StopPort             = "stop"
+	StatusPort           = "status"
+
+	metadataKeyStart = "http-start"
+	metadataKeyPort  = "port"
+)
+
+type Component struct {
+	module.Base
+
+	settings     Settings
+	settingsLock *sync.Mutex
+
+	startSettings Start
+
+	publicListenAddrLock *sync.RWMutex
+	publicListenAddr     []string
+
+	cancelFunc     context.CancelFunc
+	cancelFuncLock *sync.Mutex
+
+	startStopLock *sync.Mutex
+
+	listenPortLock *sync.RWMutex
+	listenPort     int
+
+	// lastExposedPort tracks the port from metadata to clean up if port changes on restart
+	lastExposedPortLock *sync.RWMutex
+	lastExposedPort     int
+
+	nodeName   string
+	sourceNode string
+
+	portMgr *portmanager.Manager
+
+	// isLeader tracks whether this pod is the current leader.
+	// Only the leader should clean up shared K8s resources via DisclosePort.
+	// ExposePort is safe from any pod (retry-on-conflict handles concurrent writes).
+	isLeader atomic.Bool
+
+	// noPublicHostLogged de-dupes the "no public hostname on this cluster"
+	// notice so it's logged once, not on every 15s reassert. Reset when a
+	// public URL does appear so a later regression logs again.
+	noPublicHostLogged atomic.Bool
+
+	// serverDone is closed when the server stops, allowing waiters to unblock
+	serverDone     chan struct{}
+	serverDoneLock *sync.Mutex
+}
+
+func (h *Component) Instance() module.Component {
+	return &Component{
+		publicListenAddr:     []string{},
+		publicListenAddrLock: &sync.RWMutex{},
+		cancelFuncLock:       &sync.Mutex{},
+		startStopLock:        &sync.Mutex{},
+		listenPortLock:       &sync.RWMutex{},
+		lastExposedPortLock:  &sync.RWMutex{},
+		settingsLock:         &sync.Mutex{},
+		serverDoneLock:       &sync.Mutex{},
+		startSettings: Start{
+			WriteTimeout: 10,
+			ReadTimeout:  60,
+			AutoHostName: true,
+		},
+		settings: Settings{
+			EnableStatusPort: false,
+			EnableStopPort:   false,
+		},
+	}
+}
+
+type Settings struct {
+	EnableStatusPort bool `json:"enableStatusPort" required:"true" title:"Enable status port" description:"Status port notifies when server is up or down"`
+	EnableStopPort   bool `json:"enableStopPort" required:"true" title:"Enable stop port" description:"Stop port stops the running server when it receives any message"`
+	MaxBodySize      int  `json:"maxBodySize" title:"Max Body Size (MB)" description:"Maximum request body size in megabytes. 0 means use default (10MB)."`
+}
+
+const defaultMaxBodySize = 10 * 1024 * 1024 // 10MB
+
+type StartContext any
+
+type Start struct {
+	Context      StartContext `json:"context,omitempty" configurable:"true" title:"Context" description:"Start context"`
+	AutoHostName bool         `json:"autoHostName" title:"Automatically generate hostname" description:"Use cluster auto subdomain setup if any."`
+	Hostnames    []string     `json:"hostnames,omitempty" title:"Hostnames"  description:"List of virtual host this server should be bound to."`
+	ReadTimeout  int          `json:"readTimeout" required:"true" title:"Read Timeout" description:"Read timeout is the maximum duration for reading the entire request in seconds, including the body. A zero or negative value means there will be no timeout."`
+	WriteTimeout int          `json:"writeTimeout" required:"true" title:"Write Timeout" description:"Write timeout is the maximum duration before timing out writes of the response in seconds. It is reset whenever a new request's header is read."`
+	TLSCert      string       `json:"tlsCert,omitempty" title:"TLS Certificate" description:"PEM or base64-encoded PEM certificate for HTTPS. Leave empty for plain HTTP." format:"textarea"`
+	TLSKey       string       `json:"tlsKey,omitempty" title:"TLS Private Key" description:"PEM or base64-encoded PEM private key for HTTPS. Leave empty for plain HTTP." format:"textarea"`
+}
+
+// Stop is the Stop port's payload. Any message stops the running server; the
+// Context field exists only so the port carries a schema and can be fed from
+// upstream data. Gated by Settings.EnableStopPort.
+type Stop struct {
+	Context StartContext `json:"context,omitempty" configurable:"true" title:"Context" description:"Ignored — any message on this port stops the server"`
+}
+
+type Request struct {
+	Context StartContext `json:"context"`
+	// Path is the route WITHOUT the query string, which is what a flow
+	// actually branches on. RequestURI includes it, so a router comparing
+	// against "/webhook" matched until the day somebody appended ?retry=1 and
+	// then silently stopped — the flow still ran, down the wrong branch.
+	Path string `json:"path" required:"true" title:"Path" description:"Request path with no query string, e.g. /hooks/github. Branch on this, not on requestURI."`
+	// PathSegments saves the expression engine a job it cannot do: it has
+	// split(), but a router needs one segment, and there is no index-into-split.
+	PathSegments  []string     `json:"pathSegments" title:"Path Segments" description:"Path split on '/', empty parts dropped: /hooks/github gives [hooks, github]. Read one with $.pathSegments[0]."`
+	RequestURI    string       `json:"requestURI" required:"true" title:"Request URI" description:"Full target including the query string. Use path to route; use this only when you need the raw line."`
+	RequestParams url.Values   `json:"requestParams" required:"true"`
+	Host          string       `json:"host" required:"true"`
+	Method        string       `json:"method" required:"true" title:"Method" enum:"GET,POST,PATCH,PUT,DELETE" enumTitles:"GET,POST,PATCH,PUT,DELETE"`
+	RealIP        string       `json:"realIP"`
+	Headers       []etc.Header `json:"headers,omitempty"`
+	Body          string       `json:"body"`
+	Scheme        string       `json:"scheme"`
+	PodName       string       `json:"podName" title:"Pod Name" description:"Name of the pod handling this request"`
+}
+
+type Control struct {
+	Status     string   `json:"status" title:"Status" readonly:"true"`
+	ListenAddr []string `json:"listenAddr" title:"Listen Address" readonly:"true"`
+}
+
+type Status struct {
+	Context    StartContext `json:"context" title:"Context"`
+	ListenAddr []string     `json:"listenAddr" title:"Listen Address"`
+	IsRunning  bool         `json:"isRunning" title:"Is running"`
+}
+
+type Response struct {
+	StatusCode  int             `json:"statusCode" required:"true" title:"Status Code" description:"HTTP status code for response" minimum:"100" default:"200" maximum:"599"`
+	ContentType etc.ContentType `json:"contentType" required:"true"`
+	Headers     []etc.Header    `json:"headers,omitempty"  title:"Response headers"`
+	Body        string          `json:"body" title:"Response body" format:"textarea"`
+}
+
+func (h *Component) GetInfo() module.ComponentInfo {
+	return module.ComponentInfo{
+		Name:        ComponentName,
+		Description: "HTTP Server",
+		Info:        "HTTP request handler. The server does NOT run until a message arrives on the Start port — wire a signal (or cron) into Start to launch it (a cron would re-launch on every tick, so prefer signal for a long-running server). On start it exposes a public URL; read that URL from the _control port's ListenAddr (or enable the status port) — never guess the address. Each incoming HTTP request emits on Request port. Wire Request to processing logic, then wire result to Response port with statusCode (required), contentType (required), headers, body. To stop the server, enable the Stop port in settings and send it any message (context cancellation alone will NOT stop it — the runtime is distributed and durable).",
+		Tags:        []string{"HTTP", "Server"},
+	}
+}
+
+// SyncRPC declares the transport fact about this component: it emits a
+// request and BLOCKS holding a live HTTP connection until the response
+// port receives the result. Nodes on its request→response path must be
+// delivered over classic request/reply (which load-balances across the
+// module's pods), never durable fire-and-forget — a persisted hop
+// returns nothing to a waiting caller.
+func (h *Component) SyncRPC() module.SyncRPCInfo {
+	return module.SyncRPCInfo{}
+}
+
+// State management
+
+func (h *Component) stop() error {
+	h.cancelFuncLock.Lock()
+	defer h.cancelFuncLock.Unlock()
+
+	if h.cancelFunc == nil {
+		return nil
+	}
+
+	log.Info().Msg("stopping HTTP server")
+	h.cancelFunc()
+	return nil
+}
+
+func (h *Component) setCancelFunc(fn context.CancelFunc) {
+	h.cancelFuncLock.Lock()
+	defer h.cancelFuncLock.Unlock()
+	h.cancelFunc = fn
+}
+
+func (h *Component) isRunning() bool {
+	h.cancelFuncLock.Lock()
+	defer h.cancelFuncLock.Unlock()
+	return h.cancelFunc != nil
+}
+
+func (h *Component) setPublicListenAddr(addr []string) {
+	h.publicListenAddrLock.Lock()
+	defer h.publicListenAddrLock.Unlock()
+	h.publicListenAddr = addr
+}
+
+func (h *Component) getPublicListenAddr() []string {
+	h.publicListenAddrLock.RLock()
+	defer h.publicListenAddrLock.RUnlock()
+	return h.publicListenAddr
+}
+
+func (h *Component) setListenPort(port int) {
+	h.listenPortLock.Lock()
+	defer h.listenPortLock.Unlock()
+	h.listenPort = port
+}
+
+func (h *Component) getListenPort() int {
+	h.listenPortLock.RLock()
+	defer h.listenPortLock.RUnlock()
+	return h.listenPort
+}
+
+func (h *Component) getServerDone() chan struct{} {
+	h.serverDoneLock.Lock()
+	defer h.serverDoneLock.Unlock()
+	return h.serverDone
+}
+
+func (h *Component) setServerDone(done chan struct{}) {
+	h.serverDoneLock.Lock()
+	defer h.serverDoneLock.Unlock()
+	h.serverDone = done
+}
+
+// OnClient receives the K8s client and initializes the port manager.
+func (h *Component) OnClient(k8sClient module.K8sClient) {
+	if k8sClient == nil {
+		log.Warn().Msg("http-server: OnClient received nil client")
+		return
+	}
+	h.portMgr = portmanager.New(k8sClient.GetK8sClient(), k8sClient.GetNamespace())
+	log.Info().Str("namespace", k8sClient.GetNamespace()).Msg("http-server: portMgr initialized")
+}
+
+// OnSettings receives Settings.
+func (h *Component) OnSettings(_ context.Context, msg any) error {
+	in, ok := msg.(Settings)
+	if !ok {
+		return fmt.Errorf("invalid settings message")
+	}
+	h.settingsLock.Lock()
+	defer h.settingsLock.Unlock()
+	h.settings = in
+	return nil
+}
+
+// OnReconcile updates leader status from context, restores running state
+// from metadata, and starts (or stops) the server accordingly.
+func (h *Component) OnReconcile(ctx context.Context, node v1alpha1.TinyNode) error {
+	h.isLeader.Store(moduleutils.IsLeader(ctx))
+	h.handleReconcile(node)
+	return nil
+}
+
+// Handle dispatches business ports (Start, Response). System ports go
+// through the capability methods above.
+func (h *Component) Handle(ctx context.Context, handler module.Handler, port string, msg interface{}) module.Result {
+	// Refresh leader status on every business port call too — control
+	// messages from the dashboard come via Handle paths and may carry
+	// updated leader context.
+	h.isLeader.Store(moduleutils.IsLeader(ctx))
+
+	switch port {
+	case StartPort:
+		if err := h.handleStart(ctx, handler, msg); err != nil {
+			return module.Fail(err)
+		}
+		return module.Result{}
+	case StopPort:
+		if err := h.handleStop(); err != nil {
+			return module.Fail(err)
+		}
+		return module.Result{}
+	case ResponsePort:
+		return h.handleResponse(msg)
+	default:
+		return module.Fail(fmt.Errorf("port %s is not supported", port))
+	}
+}
+
+// handleStop is the explicit stop the distributed runtime needs: cross-pod
+// context cancellation doesn't exist, so a running server can only be told to
+// stop by a message. Any payload on the Stop port lands here. It clears the
+// start intent FIRST — otherwise the durable reconcile path (handleReconcile)
+// re-hosts the server the instant we cancel it — then cancels the server. The
+// cancellation's own shutdown clears the listen address and flips _control to
+// "Not running", which is also what makes a localhost tunnel or ingress drop.
+func (h *Component) handleStop() error {
+	log.Info().Msg("http_server: Stop port received, stopping server")
+	h.clearStartMetadata()
+	return h.stop()
+}
+
+func (h *Component) handleResponse(msg interface{}) module.Result {
+	log.Info().
+		Str("type", fmt.Sprintf("%T", msg)).
+		Bool("isNil", msg == nil).
+		Msg("http_server: handleResponse received")
+
+	in, ok := msg.(Response)
+	if !ok {
+		log.Error().
+			Interface("msg", msg).
+			Str("type", fmt.Sprintf("%T", msg)).
+			Msg("http_server: handleResponse - msg is not Response type")
+		return module.Fail(fmt.Errorf("invalid response message: got %T", msg))
+	}
+
+	if in.StatusCode == 0 && in.Body == "" && in.ContentType == "" {
+		log.Warn().Msg("http_server: handleResponse - received empty Response (all zero values)")
+	}
+
+	log.Info().
+		Int("statusCode", in.StatusCode).
+		Int("bodyLen", len(in.Body)).
+		Msg("http_server: handleResponse returning")
+
+	return module.Ok(in)
+}
+
+func (h *Component) handleReconcile(node v1alpha1.TinyNode) {
+	h.nodeName = node.Name
+
+	if node.Status.Metadata == nil {
+		return
+	}
+
+	metadataPort := h.readPortFromMetadata(node.Status.Metadata)
+	if metadataPort == 0 {
+		return
+	}
+
+	if h.isRunning() {
+		// If start metadata was cleared (e.g. ticker stopped), stop the server
+		if _, ok := h.readStartFromMetadata(node.Status.Metadata); !ok {
+			log.Info().Msg("http_server: start metadata cleared, stopping running server")
+			_ = h.stop()
+			return
+		}
+		// Port re-assertion while running is handled by periodicReassert, not
+		// here: an idle running server receives no TinyNode reconciles, and an
+		// external Service reset fires no node event — so reconcile is the wrong
+		// trigger for self-heal. See periodicReassert.
+		return
+	}
+
+	startCfg, ok := h.readStartFromMetadata(node.Status.Metadata)
+	if !ok {
+		return
+	}
+
+	h.startSettings = startCfg
+	log.Info().Interface("start", startCfg).Int("port", metadataPort).Msg("http_server: restoring from metadata")
+
+	go h.startFromMetadata(metadataPort)
+}
+
+func (h *Component) readPortFromMetadata(metadata map[string]string) int {
+	portStr, ok := metadata[metadataKeyPort]
+	if !ok {
+		return 0
+	}
+
+	p, err := strconv.Atoi(portStr)
+	if err != nil || p <= 0 {
+		return 0
+	}
+
+	h.setListenPort(p)
+	h.setLastExposedPort(p)
+	return p
+}
+
+func (h *Component) setLastExposedPort(port int) {
+	h.lastExposedPortLock.Lock()
+	defer h.lastExposedPortLock.Unlock()
+	h.lastExposedPort = port
+}
+
+func (h *Component) getLastExposedPort() int {
+	h.lastExposedPortLock.RLock()
+	defer h.lastExposedPortLock.RUnlock()
+	return h.lastExposedPort
+}
+
+func (h *Component) readStartFromMetadata(metadata map[string]string) (Start, bool) {
+	startStr, ok := metadata[metadataKeyStart]
+	if !ok || startStr == "" {
+		return Start{}, false
+	}
+
+	var cfg Start
+	if err := json.Unmarshal([]byte(startStr), &cfg); err != nil {
+		return Start{}, false
+	}
+
+	if cfg.ReadTimeout == 0 && cfg.WriteTimeout == 0 {
+		return Start{}, false
+	}
+
+	return cfg, true
+}
+
+func (h *Component) startFromMetadata(port int) {
+	h.startStopLock.Lock()
+	defer h.startStopLock.Unlock()
+
+	if h.isRunning() {
+		return
+	}
+
+	log.Info().Int("port", port).Msg("http_server: starting server from metadata")
+	if err := h.runServer(context.Background(), h.Emitter()); err != nil {
+		log.Error().Err(err).Msg("http_server: server stopped after metadata restoration")
+	}
+
+	// Push updated status so UI shows "Not running"
+	_ = h.Emit(context.Background(), v1alpha1.ControlPort, h.getControl())
+	_ = h.Emit(context.Background(), v1alpha1.ReconcilePort, nil)
+}
+
+func (h *Component) handleStart(ctx context.Context, handler module.Handler, msg interface{}) error {
+	if msg == nil {
+		log.Info().Msg("http_server: StartPort received nil (state deleted), stopping")
+		_ = h.stop()
+		return nil
+	}
+
+	in := h.parseStartConfig(msg)
+
+	h.sourceNode = moduleutils.GetSourceNode(ctx)
+	h.startSettings = in
+
+	log.Info().
+		Str("sourceNode", h.sourceNode).
+		Bool("isLeader", moduleutils.IsLeader(ctx)).
+		Bool("isRunning", h.isRunning()).
+		Msg("http_server: StartPort received")
+
+	h.persistStartConfig(in)
+
+	if done := h.getServerDone(); done != nil {
+		log.Info().Msg("http_server: already running, waiting for server to stop")
+		select {
+		case <-done:
+			log.Info().Msg("http_server: server stopped, returning from Start")
+			return nil
+		case <-ctx.Done():
+			// A duplicate Start's context expired — a transport timeout, NOT
+			// an intent to stop. The running server is owned by reconcile
+			// (started on context.Background()); tearing it down + clearing
+			// metadata here is the pre-JetStream bug that let a 1s ticker
+			// churn the listener into oblivion. Leave the running server up.
+			// Only an explicit stop (nil Start) or OnDestroy may tear it down.
+			return nil
+		}
+	}
+
+	// Wait for listenPort to be set by _reconcile if it's still 0
+	// This handles the race where Start signal arrives before _reconcile completes
+	if h.getListenPort() == 0 {
+		log.Info().Msg("http_server: listenPort is 0, waiting for _reconcile to set it")
+		deadline := time.Now().Add(5 * time.Second)
+		for h.getListenPort() == 0 && time.Now().Before(deadline) {
+			time.Sleep(50 * time.Millisecond)
+		}
+		if port := h.getListenPort(); port > 0 {
+			log.Info().Int("port", port).Msg("http_server: listenPort set by _reconcile")
+		} else {
+			log.Warn().Msg("http_server: listenPort still 0 after waiting, will use random port")
+		}
+	}
+
+	log.Info().Msg("http_server: starting server from StartPort")
+	err := h.runServer(ctx, handler)
+
+	log.Info().Err(err).Msg("http_server: server stopped")
+	_ = h.Emit(context.Background(), v1alpha1.ReconcilePort, nil)
+
+	// Deliberately do NOT clear start metadata or disclose the port when
+	// runServer returns due to context cancellation. A cancelled signal/
+	// transport context is a timeout, not an intent to stop. Leaving the
+	// metadata intact lets _reconcile re-host the server on
+	// context.Background() (the durable keep-alive path), so a SINGLE Start
+	// holds the listener forever with no ticker. Metadata is cleared only on
+	// an explicit stop (nil Start, above) or OnDestroy.
+	return err
+}
+
+func (h *Component) parseStartConfig(msg interface{}) Start {
+	if start, ok := msg.(Start); ok {
+		return start
+	}
+
+	in := h.startSettings
+	in.Context = msg
+	return in
+}
+
+func (h *Component) persistStartConfig(cfg Start) {
+	startBytes, _ := json.Marshal(cfg)
+	_ = h.Emit(context.Background(), v1alpha1.ReconcilePort, func(n *v1alpha1.TinyNode) error {
+		if n.Status.Metadata == nil {
+			n.Status.Metadata = make(map[string]string)
+		}
+		n.Status.Metadata[metadataKeyStart] = string(startBytes)
+		return nil
+	})
+}
+
+func (h *Component) clearStartMetadata() {
+	_ = h.Emit(context.Background(), v1alpha1.ReconcilePort, func(n *v1alpha1.TinyNode) error {
+		if n.Status.Metadata == nil {
+			return nil
+		}
+		delete(n.Status.Metadata, metadataKeyStart)
+		return nil
+	})
+}
+
+// Server lifecycle
+
+func (h *Component) runServer(ctx context.Context, handler module.Handler) error {
+	if h.portMgr == nil {
+		return fmt.Errorf("unable to start, no port manager available")
+	}
+
+	log.Info().Msg("http-server: entering")
+
+	// Create serverDone channel so other callers can wait for server to stop
+	done := make(chan struct{})
+	h.setServerDone(done)
+	defer func() {
+		h.setServerDone(nil)
+		close(done)
+	}()
+
+	e := h.createEchoServer(handler)
+	// Use Background context - server is long-running and shouldn't inherit caller's deadline
+	serverCtx, serverCancel := context.WithCancel(context.Background())
+	defer serverCancel()
+
+	// Bridge: cancel server when parent context is done.
+	// This lets Handle() return after gRPC timeout. The server will be
+	// restored from metadata by reconcile using context.Background().
+	go func() {
+		select {
+		case <-ctx.Done():
+			serverCancel()
+		case <-serverCtx.Done():
+		}
+	}()
+
+	h.setCancelFunc(serverCancel)
+
+	listenAddr := h.determineListenAddr()
+
+	go h.startEchoServer(e, listenAddr, serverCancel)
+
+	// Poll for Echo to bind its listener instead of fixed sleep
+	// Check both Listener (plain HTTP) and TLSListener (HTTPS)
+	deadline := time.Now().Add(5 * time.Second)
+	for e.Listener == nil && e.TLSListener == nil && time.Now().Before(deadline) {
+		select {
+		case <-serverCtx.Done():
+			return serverCtx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+
+	actualPort, err := h.handleServerStarted(ctx, e, handler)
+	if err != nil {
+		return err
+	}
+
+	// Keep the shared Service/Ingress in sync with the listener for as long as
+	// it runs. Tied to serverCtx so it stops when the server does.
+	go h.periodicReassert(serverCtx, actualPort)
+
+	log.Info().Msg("http-server: waiting on serverCtx.Done()")
+	<-serverCtx.Done()
+
+	h.shutdownServer(e, actualPort)
+	return serverCtx.Err()
+}
+
+func (h *Component) createEchoServer(handler module.Handler) *echo.Echo {
+	e := echo.New()
+	e.HideBanner = true
+	e.HidePort = false
+
+	e.Any("*", func(c echo.Context) error {
+		return h.handleHTTPRequest(c, handler)
+	})
+
+	e.Server.ReadTimeout = time.Duration(h.startSettings.ReadTimeout) * time.Second
+	e.Server.WriteTimeout = time.Duration(h.startSettings.WriteTimeout) * time.Second
+
+	return e
+}
+
+func (h *Component) handleHTTPRequest(c echo.Context, handler module.Handler) error {
+	req, err := h.buildRequest(c)
+	if err != nil {
+		log.Error().Err(err).Msg("http_server: could not read the request")
+		return c.String(http.StatusBadRequest, "could not read request body")
+	}
+
+	log.Info().Str("path", req.Path).Str("method", req.Method).Msg("http_server: handling request")
+
+	resp := handler(c.Request().Context(), RequestPort, req)
+	respValue := resp.Value()
+
+	log.Info().
+		Str("type", fmt.Sprintf("%T", respValue)).
+		Bool("isNil", respValue == nil).
+		Msg("http_server: handler returned")
+
+	if err := resp.Err(); err != nil {
+		log.Error().Err(err).Msg("http_server: handler returned error")
+		return err
+	}
+
+	respObj, ok := respValue.(Response)
+	if !ok {
+		log.Error().
+			Interface("resp", respValue).
+			Str("type", fmt.Sprintf("%T", respValue)).
+			Msg("http_server: response is not Response type")
+		return fmt.Errorf("invalid response: got %T", respValue)
+	}
+
+	if respObj.StatusCode == 0 && respObj.Body == "" && respObj.ContentType == "" {
+		log.Warn().
+			Int("statusCode", respObj.StatusCode).
+			Str("body", respObj.Body).
+			Str("contentType", string(respObj.ContentType)).
+			Msg("http_server: response appears empty (zero values)")
+	}
+
+	log.Info().
+		Int("statusCode", respObj.StatusCode).
+		Int("bodyLen", len(respObj.Body)).
+		Msg("http_server: writing response")
+
+	h.writeResponse(c, respObj)
+	return nil
+}
+
+func (h *Component) buildRequest(c echo.Context) (Request, error) {
+	req := Request{
+		Context:       h.startSettings.Context,
+		Host:          c.Request().Host,
+		Method:        c.Request().Method,
+		RequestURI:    c.Request().RequestURI,
+		RequestParams: c.QueryParams(),
+		RealIP:        c.RealIP(),
+		Scheme:        c.Scheme(),
+		Headers:       h.extractHeaders(c.Request()),
+		PodName:       os.Getenv("HOSTNAME"),
+		Path:          c.Request().URL.Path,
+		PathSegments:  pathSegments(c.Request().URL.Path),
+	}
+
+	maxBodySize := h.getMaxBodySize()
+	limitedReader := io.LimitReader(c.Request().Body, int64(maxBodySize))
+	body, err := io.ReadAll(limitedReader)
+	if err != nil {
+		// A body that could not be read used to be delivered as an empty
+		// string. The flow then ran on nothing — a webhook handler seeing no
+		// payload, a signature check failing — with the actual cause, a
+		// truncated or aborted upload, reported nowhere.
+		return req, fmt.Errorf("read request body: %w", err)
+	}
+	req.Body = utils.BytesToString(body)
+
+	return req, nil
+}
+
+// pathSegments splits a path for routing, dropping the empty parts that a
+// leading, trailing or doubled slash produces — so /hooks/github/ and
+// /hooks/github segment identically, which is how anyone writing the route
+// expects them to behave.
+func pathSegments(path string) []string {
+	parts := strings.Split(path, "/")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+func (h *Component) getMaxBodySize() int {
+	h.settingsLock.Lock()
+	defer h.settingsLock.Unlock()
+	if h.settings.MaxBodySize > 0 {
+		return h.settings.MaxBodySize * 1024 * 1024 // Convert MB to bytes
+	}
+	return defaultMaxBodySize
+}
+
+func (h *Component) extractHeaders(r *http.Request) []etc.Header {
+	headers := make([]etc.Header, 0)
+
+	keys := make([]string, 0, len(r.Header))
+	for k := range r.Header {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		for _, v := range r.Header[k] {
+			headers = append(headers, etc.Header{Key: k, Value: v})
+		}
+	}
+
+	return headers
+}
+
+func (h *Component) writeResponse(c echo.Context, resp Response) {
+	for _, header := range resp.Headers {
+		c.Response().Header().Set(header.Key, header.Value)
+	}
+
+	if resp.ContentType != "" {
+		c.Response().Header().Set(etc.HeaderContentType, string(resp.ContentType))
+	}
+
+	statusCode := resp.StatusCode
+	if statusCode == 0 {
+		statusCode = 200
+	}
+
+	_ = c.String(statusCode, fmt.Sprintf("%v", resp.Body))
+}
+
+func (h *Component) determineListenAddr() string {
+	listenPort := h.getListenPort()
+	if listenPort > 0 {
+		log.Info().Int("port", listenPort).Msg("http_server: using port from metadata")
+		return fmt.Sprintf(":%d", listenPort)
+	}
+	return ":0"
+}
+
+func (h *Component) startEchoServer(e *echo.Echo, addr string, cancel context.CancelFunc) {
+	var err error
+	if h.startSettings.TLSCert != "" && h.startSettings.TLSKey != "" {
+		certPEM := decodePEM(h.startSettings.TLSCert)
+		keyPEM := decodePEM(h.startSettings.TLSKey)
+		certFile, keyFile, cleanup, writeErr := writeTLSFiles(certPEM, keyPEM)
+		if writeErr != nil {
+			log.Error().Err(writeErr).Msg("failed to write TLS files")
+			cancel()
+			return
+		}
+		defer cleanup()
+		log.Info().Str("addr", addr).Msg("starting HTTPS server")
+		err = e.StartTLS(addr, certFile, keyFile)
+	} else {
+		err = e.Start(addr)
+	}
+	if err == nil || errors.Is(err, http.ErrServerClosed) {
+		return
+	}
+	log.Error().Err(err).Str("addr", addr).Msg("failed to start HTTP server")
+	cancel()
+}
+
+func writeTLSFiles(certPEM, keyPEM string) (certFile, keyFile string, cleanup func(), err error) {
+	cf, err := os.CreateTemp("", "tls-cert-*.pem")
+	if err != nil {
+		return "", "", nil, fmt.Errorf("create cert temp file: %w", err)
+	}
+	if _, err := cf.WriteString(certPEM); err != nil {
+		cf.Close()
+		os.Remove(cf.Name())
+		return "", "", nil, fmt.Errorf("write cert: %w", err)
+	}
+	cf.Close()
+
+	kf, err := os.CreateTemp("", "tls-key-*.pem")
+	if err != nil {
+		os.Remove(cf.Name())
+		return "", "", nil, fmt.Errorf("create key temp file: %w", err)
+	}
+	if _, err := kf.WriteString(keyPEM); err != nil {
+		kf.Close()
+		os.Remove(cf.Name())
+		os.Remove(kf.Name())
+		return "", "", nil, fmt.Errorf("write key: %w", err)
+	}
+	kf.Close()
+
+	return cf.Name(), kf.Name(), func() {
+		os.Remove(cf.Name())
+		os.Remove(kf.Name())
+	}, nil
+}
+
+// decodePEM returns PEM content. If the input doesn't look like PEM,
+// it tries base64 decoding first. This allows passing certs as base64
+// strings through edge configs without newline issues.
+func decodePEM(s string) string {
+	if strings.HasPrefix(strings.TrimSpace(s), "-----BEGIN") {
+		return s
+	}
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(s))
+	if err != nil {
+		return s
+	}
+	return string(decoded)
+}
+
+func (h *Component) handleServerStarted(ctx context.Context, e *echo.Echo, _ module.Handler) (int, error) {
+	// Use TLSListener for HTTPS, Listener for plain HTTP
+	listener := e.Listener
+	if listener == nil {
+		listener = e.TLSListener
+	}
+	if listener == nil {
+		log.Error().Msg("HTTP server failed to bind - listener is nil")
+		h.setListenPort(0)
+		return 0, fmt.Errorf("server failed to bind")
+	}
+
+	tcpAddr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return 0, nil
+	}
+
+	actualPort := tcpAddr.Port
+	log.Info().Int("port", actualPort).Msg("HTTP server started successfully")
+
+	time.Sleep(time.Second)
+	h.setListenPort(actualPort)
+
+	publicURLs := h.exposePort(ctx, tcpAddr.Port)
+	h.setPublicListenAddr(publicURLs)
+
+	h.persistPort(actualPort)
+	_ = h.Emit(context.Background(), v1alpha1.ReconcilePort, nil)
+
+	return actualPort, nil
+}
+
+func (h *Component) exposePort(ctx context.Context, port int) []string {
+	log.Info().Int("port", port).Bool("hasPortMgr", h.portMgr != nil).Msg("http-server: exposePort called")
+
+	if h.portMgr == nil {
+		log.Error().Int("port", port).Msg("http-server: portMgr is nil, cannot expose port")
+		return []string{fmt.Sprintf("http://localhost:%d", port)}
+	}
+
+	// Clean up old port if it's different from the new one (e.g., after pod restart).
+	// Only leader should disclose — DisclosePort has no retry-on-conflict and can
+	// overwrite another pod's ExposePort work.
+	oldPort := h.getLastExposedPort()
+	if h.isLeader.Load() && oldPort > 0 && oldPort != port {
+		log.Info().Int("oldPort", oldPort).Int("newPort", port).Msg("http-server: cleaning up old port before exposing new one")
+		discloseCtx, discloseCancel := context.WithTimeout(ctx, time.Second*30)
+		if err := h.portMgr.DisclosePort(discloseCtx, oldPort); err != nil {
+			log.Error().Err(err).Int("port", oldPort).Msg("http-server: failed to disclose old port")
+		}
+		discloseCancel()
+	}
+
+	exposeCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	var autoHostName string
+	if h.startSettings.AutoHostName || len(h.startSettings.Hostnames) == 0 {
+		parts := strings.Split(h.nodeName, ".")
+		autoHostName = parts[len(parts)-1]
+	}
+
+	log.Info().
+		Int("port", port).
+		Str("autoHostName", autoHostName).
+		Strs("hostnames", h.startSettings.Hostnames).
+		Msg("http-server: calling portMgr.ExposePort")
+
+	publicURLs, err := h.portMgr.ExposePort(exposeCtx, autoHostName, h.startSettings.Hostnames, port)
+	if err != nil {
+		log.Error().Err(err).Int("port", port).Msg("http-server: failed to expose port")
+		return []string{fmt.Sprintf("http://localhost:%d", port)}
+	}
+
+	// The service port is exposed either way; record it so a later port change
+	// can disclose the old one.
+	h.setLastExposedPort(port)
+
+	if len(publicURLs) == 0 {
+		// No public hostname on this cluster: the ingress has no auto-subdomain
+		// annotation and the node set no explicit hostnames. The server still
+		// serves on its service port and is reachable via tiny's tunnel /
+		// port-forward. Report the local address so _control's ListenAddr has
+		// something to follow, and log it once instead of on every 15s reassert.
+		if !h.noPublicHostLogged.Swap(true) {
+			log.Info().Int("port", port).Msg("http-server: no public hostname on this cluster (no ingress subdomain) — serving on service port, reachable via tunnel/port-forward")
+		}
+		return []string{fmt.Sprintf("http://localhost:%d", port)}
+	}
+
+	h.noPublicHostLogged.Store(false)
+	log.Info().Int("port", port).Strs("publicURLs", publicURLs).Msg("http-server: port exposed successfully")
+	return publicURLs
+}
+
+// reassertInterval is how often a running server re-asserts its exposed port on
+// the shared Service/Ingress.
+const reassertInterval = 15 * time.Second
+
+// periodicReassert re-asserts the exposed port on a timer for as long as the
+// server runs. It exists because nothing else reliably triggers re-disclosure
+// after an external reset: an idle running server receives no TinyNode
+// reconciles, and a same-version `helm upgrade` that replaces the shared
+// manager Service (wiping our port back to grpc-only) fires no node event and
+// does not restart this pod. Without this, the listener keeps running but
+// becomes unreachable and the site 503s until someone restarts the pod by hand.
+//
+// ExposePort is idempotent — a no-op read when the port + ingress rule already
+// exist — so the healthy case costs only a couple of API reads per interval and
+// never churns the Service or Ingress. Not leader-gated: this only ever ADDs
+// (ExposePort is conflict-safe by design), and the pod re-asserting is the one
+// that actually holds the listener, which is exactly the pod the Service must
+// route to.
+func (h *Component) periodicReassert(ctx context.Context, port int) {
+	ticker := time.NewTicker(reassertInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			h.exposePort(ctx, port)
+		}
+	}
+}
+
+func (h *Component) persistPort(port int) {
+	_ = h.Emit(context.Background(), v1alpha1.ReconcilePort, func(n *v1alpha1.TinyNode) error {
+		if n.Status.Metadata == nil {
+			n.Status.Metadata = make(map[string]string)
+		}
+		n.Status.Metadata[metadataKeyPort] = fmt.Sprintf("%d", port)
+		return nil
+	})
+}
+
+func (h *Component) shutdownServer(e *echo.Echo, actualPort int) {
+	log.Info().Msg("http-server: serverCtx done, shutting down")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	_ = e.Shutdown(shutdownCtx)
+
+	h.setCancelFunc(nil)
+	h.setListenPort(0)
+
+	// NOTE: We intentionally do NOT call DisclosePort here.
+	// During rolling updates, the new pod exposes ports before the old pod shuts down.
+	// If we disclose here, we'd remove ports that the new pod just added.
+	// Port cleanup only happens in OnDestroy() when the TinyNode CRD is deleted.
+
+	h.setPublicListenAddr([]string{})
+	log.Info().Msg("http-server: exiting")
+}
+
+// UI helpers
+
+func (h *Component) getControl() Control {
+	if h.isRunning() {
+		return Control{
+			Status:     "Running",
+			ListenAddr: h.getPublicListenAddr(),
+		}
+	}
+	return Control{Status: "Not running"}
+}
+
+func (h *Component) getStatus() Status {
+	return Status{
+		ListenAddr: h.getPublicListenAddr(),
+		IsRunning:  h.isRunning(),
+	}
+}
+
+func (h *Component) Ports() []module.Port {
+	h.settingsLock.Lock()
+	defer h.settingsLock.Unlock()
+
+	ports := []module.Port{
+		{Name: v1alpha1.ClientPort},
+		{Name: v1alpha1.ReconcilePort},
+		{
+			Name:          v1alpha1.SettingsPort,
+			Label:         "Settings",
+			Configuration: h.settings,
+		},
+		{
+			Name:                  RequestPort,
+			Label:                 "Request",
+			Source:                true,
+			Configuration:         Request{},
+			Position:              module.Right,
+			ResponseConfiguration: Response{},
+		},
+		{
+			Name:          ResponsePort,
+			Label:         "Response",
+			Position:      module.Right,
+			Configuration: Response{StatusCode: 200},
+		},
+		{
+			Name:          v1alpha1.ControlPort,
+			Label:         "Dashboard",
+			Source:        true,
+			Configuration: h.getControl(),
+		},
+		{
+			Name:          StartPort,
+			Label:         "Start",
+			Position:      module.Left,
+			Configuration: h.startSettings,
+		},
+	}
+
+	if h.settings.EnableStopPort {
+		ports = append(ports, module.Port{
+			Position:      module.Left,
+			Name:          StopPort,
+			Label:         "Stop",
+			Configuration: Stop{},
+		})
+	}
+
+	if h.settings.EnableStatusPort {
+		ports = append(ports, module.Port{
+			Position:      module.Bottom,
+			Name:          StatusPort,
+			Label:         "Status",
+			Source:        true,
+			Configuration: h.getStatus(),
+		})
+	}
+
+	return ports
+}
+
+var (
+	_ module.Component        = (*Component)(nil)
+	_ module.SettingsHandler  = (*Component)(nil)
+	_ module.ReconcileHandler = (*Component)(nil)
+	_ module.ClientAware      = (*Component)(nil)
+	_ module.Destroyer        = (*Component)(nil)
+)
+
+// OnDestroy implements module.Destroyer interface.
+// Called when the node is being deleted (via finalizer) to clean up exposed ports.
+func (h *Component) OnDestroy(metadata map[string]string) {
+	h.stop()
+	if h.portMgr == nil {
+		return
+	}
+
+	// Only the leader should modify shared K8s resources (Service/Ingress).
+	if !h.isLeader.Load() {
+		return
+	}
+
+	portStr, ok := metadata[metadataKeyPort]
+	if !ok || portStr == "" {
+		return
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port == 0 {
+		return
+	}
+
+	log.Info().Int("port", port).Msg("http-server: cleaning up exposed port on destroy")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	if err := h.portMgr.DisclosePort(ctx, port); err != nil {
+		log.Error().Err(err).Int("port", port).Msg("http-server: failed to disclose port on destroy")
+	}
+}
+
+func init() {
+	registry.Register((&Component{}).Instance())
+}
