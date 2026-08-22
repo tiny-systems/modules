@@ -15,7 +15,7 @@ import (
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"
-	"github.com/tiny-systems/storage-module/internal/s3conn"
+	"github.com/tiny-systems/modules/storage-module/internal/s3conn"
 )
 
 const (

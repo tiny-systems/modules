@@ -1,5 +1,5 @@
 name: encoding-module
-source: github.com/tiny-systems/encoding-module
+source: github.com/tiny-systems/modules/encoding-module
 description: Encoding — JSON, XML, CSV, JWT, Go templates and text chunking
 category: core
 versions:

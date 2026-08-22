@@ -1,5 +1,5 @@
 name: googleapis-module
-source: github.com/tiny-systems/googleapis-module
+source: github.com/tiny-systems/modules/googleapis-module
 description: Google Calendar, Firestore, and OAuth components
 category: google
 versions:

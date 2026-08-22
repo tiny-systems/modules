@@ -1,5 +1,5 @@
 name: js-module
-source: github.com/tiny-systems/js-module
+source: github.com/tiny-systems/modules/js-module
 description: JavaScript eval — run JS to parse, transform, and compute over flow data (the code/eval component)
 category: core
 versions:

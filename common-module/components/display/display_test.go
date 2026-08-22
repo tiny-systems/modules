@@ -3,7 +3,7 @@ package display
 import (
 	"context"
 	"encoding/json"
-	"github.com/tiny-systems/common-module/internal/testharness"
+	"github.com/tiny-systems/modules/common-module/internal/testharness"
 	"strings"
 	"testing"
 

@@ -1,5 +1,5 @@
 name: llm-module
-source: github.com/tiny-systems/llm-module
+source: github.com/tiny-systems/modules/llm-module
 description: LLM chat, completion, and tool-calling
 category: ai
 versions:

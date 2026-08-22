@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/tiny-systems/llm-module/internal/mcpclient"
+	"github.com/tiny-systems/modules/llm-module/internal/mcpclient"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

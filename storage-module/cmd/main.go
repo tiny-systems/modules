@@ -11,10 +11,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tiny-systems/module/cli"
-	_ "github.com/tiny-systems/storage-module/components/blobget"
-	_ "github.com/tiny-systems/storage-module/components/bloblist"
-	_ "github.com/tiny-systems/storage-module/components/blobpresign"
-	_ "github.com/tiny-systems/storage-module/components/blobput"
+	_ "github.com/tiny-systems/modules/storage-module/components/blobget"
+	_ "github.com/tiny-systems/modules/storage-module/components/bloblist"
+	_ "github.com/tiny-systems/modules/storage-module/components/blobpresign"
+	_ "github.com/tiny-systems/modules/storage-module/components/blobput"
 )
 
 // RootCmd represents the base command when called without any subcommands

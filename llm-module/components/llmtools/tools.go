@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tiny-systems/llm-module/internal/provider"
-	"github.com/tiny-systems/llm-module/internal/stepcache"
+	"github.com/tiny-systems/modules/llm-module/internal/provider"
+	"github.com/tiny-systems/modules/llm-module/internal/stepcache"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	perrors "github.com/tiny-systems/module/pkg/errors"

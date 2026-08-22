@@ -1,5 +1,5 @@
 name: wasm-module
-source: github.com/tiny-systems/wasm-module
+source: github.com/tiny-systems/modules/wasm-module
 description: WebAssembly — run WASM modules over flow data
 category: core
 versions:

@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	_ "github.com/tiny-systems/embedding-module/components/embedtext"
+	_ "github.com/tiny-systems/modules/embedding-module/components/embedtext"
 	"github.com/tiny-systems/module/cli"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

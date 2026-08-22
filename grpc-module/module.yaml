@@ -1,5 +1,5 @@
 name: grpc-module
-source: github.com/tiny-systems/grpc-module
+source: github.com/tiny-systems/modules/grpc-module
 description: gRPC client — call gRPC service methods
 category: net
 versions:

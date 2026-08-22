@@ -1,10 +1,10 @@
 apiVersion: tiny/v2
-generated: "2026-08-22T09:08:47Z"
+generated: "2026-08-22T11:58:25Z"
 modules:
   common-module:
     category: core
     description: Core flow components — signal, transform, router, delay, kv, run
-    source: github.com/tiny-systems/common-module
+    source: github.com/tiny-systems/modules/common-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -269,7 +269,7 @@ modules:
   communication-module:
     category: comms
     description: Slack — slash commands and interactive components
-    source: github.com/tiny-systems/communication-module
+    source: github.com/tiny-systems/modules/communication-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -310,7 +310,7 @@ modules:
   crypto-module:
     category: security
     description: Cryptography — X.509 certificate generation
-    source: github.com/tiny-systems/crypto-module
+    source: github.com/tiny-systems/modules/crypto-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -366,7 +366,7 @@ modules:
   database-module:
     category: data
     description: Postgres, Redis, and vector store components
-    source: github.com/tiny-systems/database-module
+    source: github.com/tiny-systems/modules/database-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -445,7 +445,7 @@ modules:
   distribution-module:
     category: infra
     description: OCI registry ops — list catalogs and copy images
-    source: github.com/tiny-systems/distribution-module
+    source: github.com/tiny-systems/modules/distribution-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -476,7 +476,7 @@ modules:
   embedding-module:
     category: ai
     description: Text embeddings for semantic / vector search
-    source: github.com/tiny-systems/embedding-module
+    source: github.com/tiny-systems/modules/embedding-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -497,7 +497,7 @@ modules:
   encoding-module:
     category: core
     description: Encoding — JSON, XML, CSV, JWT, Go templates and text chunking
-    source: github.com/tiny-systems/encoding-module
+    source: github.com/tiny-systems/modules/encoding-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -595,7 +595,7 @@ modules:
   googleapis-module:
     category: google
     description: Google Calendar, Firestore, and OAuth components
-    source: github.com/tiny-systems/googleapis-module
+    source: github.com/tiny-systems/modules/googleapis-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -705,7 +705,7 @@ modules:
   grpc-module:
     category: net
     description: gRPC client — call gRPC service methods
-    source: github.com/tiny-systems/grpc-module
+    source: github.com/tiny-systems/modules/grpc-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -730,7 +730,7 @@ modules:
   http-module:
     category: net
     description: HTTP client and server components
-    source: github.com/tiny-systems/http-module
+    source: github.com/tiny-systems/modules/http-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -842,7 +842,7 @@ modules:
     category: core
     description: JavaScript eval — run JS to parse, transform, and compute over flow
       data (the code/eval component)
-    source: github.com/tiny-systems/js-module
+    source: github.com/tiny-systems/modules/js-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -871,7 +871,7 @@ modules:
   kubernetes-module:
     category: infra
     description: Kubernetes ops — pods, deployments, services, watches
-    source: github.com/tiny-systems/kubernetes-module
+    source: github.com/tiny-systems/modules/kubernetes-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -1205,7 +1205,7 @@ modules:
   llm-module:
     category: ai
     description: LLM chat, completion, and tool-calling
-    source: github.com/tiny-systems/llm-module
+    source: github.com/tiny-systems/modules/llm-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -1323,7 +1323,7 @@ modules:
     category: data
     description: S3-compatible blob storage — put, get, list, and presign objects
       (S3, MinIO, R2, GCS interop)
-    source: github.com/tiny-systems/storage-module
+    source: github.com/tiny-systems/modules/storage-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -1408,7 +1408,7 @@ modules:
   store-module:
     category: data
     description: Document store — persist and query JSON documents
-    source: github.com/tiny-systems/store-module
+    source: github.com/tiny-systems/modules/store-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12
@@ -1455,7 +1455,7 @@ modules:
   wasm-module:
     category: core
     description: WebAssembly — run WASM modules over flow data
-    source: github.com/tiny-systems/wasm-module
+    source: github.com/tiny-systems/modules/wasm-module
     versions:
     - chart: tinysystems/tinysystems-operator
       chartVersion: 0.2.12

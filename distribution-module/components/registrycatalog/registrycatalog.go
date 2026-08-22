@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/google/go-containerregistry/pkg/crane"
-	"github.com/tiny-systems/distribution-module/internal/regerr"
+	"github.com/tiny-systems/modules/distribution-module/internal/regerr"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

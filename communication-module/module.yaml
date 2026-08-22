@@ -1,5 +1,5 @@
 name: communication-module
-source: github.com/tiny-systems/communication-module
+source: github.com/tiny-systems/modules/communication-module
 description: Slack — slash commands and interactive components
 category: comms
 versions:

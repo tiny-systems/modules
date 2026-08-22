@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/swaggest/jsonschema-go"
-	"github.com/tiny-systems/database-module/components/pool"
+	"github.com/tiny-systems/modules/database-module/components/pool"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/pkg/bundle"

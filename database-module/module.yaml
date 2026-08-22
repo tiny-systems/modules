@@ -1,5 +1,5 @@
 name: database-module
-source: github.com/tiny-systems/database-module
+source: github.com/tiny-systems/modules/database-module
 description: Postgres, Redis, and vector store components
 category: data
 versions:

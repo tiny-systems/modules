@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/tiny-systems/module/module"
-	"github.com/tiny-systems/storage-module/internal/s3conn"
+	"github.com/tiny-systems/modules/storage-module/internal/s3conn"
 )
 
 type emitted struct {

@@ -3,7 +3,7 @@ package cron
 import (
 	"testing"
 
-	"github.com/tiny-systems/common-module/internal/testharness"
+	"github.com/tiny-systems/modules/common-module/internal/testharness"
 )
 
 // The trap this closes: a user pastes a credential into a running cron's

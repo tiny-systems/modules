@@ -1,5 +1,5 @@
 name: distribution-module
-source: github.com/tiny-systems/distribution-module
+source: github.com/tiny-systems/modules/distribution-module
 description: OCI registry ops — list catalogs and copy images
 category: infra
 versions:

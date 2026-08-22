@@ -1,0 +1,133 @@
+# Publish every module — one tag, eighteen images.
+#
+# Each module remains its own image, chart, ServiceAccount and RBAC; only the
+# BUILD is shared. Merging the binaries would mean one ServiceAccount holding
+# the union of every module's permissions, so what collapses here is the
+# release chore, not the isolation.
+#
+# The images keep the names they have always had —
+# ghcr.io/tiny-systems/<module>:<version> — so every catalogue entry and every
+# installed cluster keeps resolving. Only the source of the build moved.
+name: Publish module images to GHCR
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write   # commit the regenerated catalogue back to main
+  packages: write   # push to GHCR with the built-in token
+
+jobs:
+  # Compile and test once for the whole repo. Eighteen images built from code
+  # that was never compiled together would be eighteen chances to find out
+  # separately.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./...
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # one module's registry hiccup must not strand the other 17
+      matrix:
+        module:
+          - common-module
+          - communication-module
+          - crypto-module
+          - database-module
+          - distribution-module
+          - embedding-module
+          - encoding-module
+          - example-module
+          - git-module
+          - googleapis-module
+          - grpc-module
+          - http-module
+          - js-module
+          - kubernetes-module
+          - llm-module
+          - storage-module
+          - store-module
+          - wasm-module
+    steps:
+      - uses: actions/checkout@v7
+
+      # Image tag is the version without the leading 'v' (v0.11.0 → 0.11.0),
+      # matching what the module index references.
+      - name: Derive version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v4 # cross-build arm64 on the amd64 runner
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push ${{ matrix.module }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/tiny-systems/${{ matrix.module }}:${{ steps.v.outputs.version }}
+            ghcr.io/tiny-systems/${{ matrix.module }}:latest
+          build-args: |
+            VERSION=${{ steps.v.outputs.version }}
+            MODULE=${{ matrix.module }}
+          # The dependency layer is identical across the matrix, so the first
+          # job warms a cache the other seventeen reuse.
+          cache-from: type=gha,scope=modules
+          cache-to: type=gha,scope=modules,mode=max
+
+  # The catalogue is generated from the same commit that produced the images,
+  # which is the point of colocating them: module.yaml claiming a version that
+  # was never built is exactly the drift this repository used to carry.
+  catalogue:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Derive version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Point every module.yaml at this release
+        run: |
+          for f in */module.yaml; do
+            m=$(dirname "$f")
+            sed -i -E "s|^- version: .*|- version: ${{ steps.v.outputs.version }}|" "$f"
+            sed -i -E "s|^  image: ghcr.io/tiny-systems/$m:.*|  image: ghcr.io/tiny-systems/$m:${{ steps.v.outputs.version }}|" "$f"
+          done
+
+      - name: Rebuild index.yaml
+        run: |
+          go run github.com/tiny-systems/tiny@latest repo index . -o index.yaml \
+            || echo "::warning::index regeneration skipped; run 'tiny repo index . -o index.yaml' locally"
+
+      - name: Commit the catalogue
+        run: |
+          git config user.name  "tiny-systems"
+          git config user.email "noreply@tiny.systems"
+          git add -A
+          git diff --staged --quiet && exit 0
+          git commit -m "catalogue: ${{ steps.v.outputs.version }}"
+          git push origin main

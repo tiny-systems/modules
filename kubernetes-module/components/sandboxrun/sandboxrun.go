@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tiny-systems/kubernetes-module/pkg/k8s"
+	"github.com/tiny-systems/modules/kubernetes-module/pkg/k8s"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

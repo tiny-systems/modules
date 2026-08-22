@@ -1,5 +1,5 @@
 name: storage-module
-source: github.com/tiny-systems/storage-module
+source: github.com/tiny-systems/modules/storage-module
 description: S3-compatible blob storage — put, get, list, and presign objects (S3, MinIO, R2, GCS interop)
 category: data
 versions:

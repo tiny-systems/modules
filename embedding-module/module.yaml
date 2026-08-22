@@ -1,5 +1,5 @@
 name: embedding-module
-source: github.com/tiny-systems/embedding-module
+source: github.com/tiny-systems/modules/embedding-module
 description: Text embeddings for semantic / vector search
 category: ai
 versions:

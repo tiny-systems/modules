@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 	"github.com/grafana/sobek"
-	"github.com/tiny-systems/js-module/modules"
+	"github.com/tiny-systems/modules/js-module/modules"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

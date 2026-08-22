@@ -1,5 +1,5 @@
 name: kubernetes-module
-source: github.com/tiny-systems/kubernetes-module
+source: github.com/tiny-systems/modules/kubernetes-module
 description: Kubernetes ops — pods, deployments, services, watches
 category: infra
 versions:

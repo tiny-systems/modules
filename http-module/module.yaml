@@ -1,5 +1,5 @@
 name: http-module
-source: github.com/tiny-systems/http-module
+source: github.com/tiny-systems/modules/http-module
 description: HTTP client and server components
 category: net
 versions:

@@ -3,7 +3,7 @@ package channel_watch
 import (
 	"context"
 	"fmt"
-	"github.com/tiny-systems/googleapis-module/components/etc"
+	"github.com/tiny-systems/modules/googleapis-module/components/etc"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

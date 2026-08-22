@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tiny-systems/http-module/components/etc"
+	"github.com/tiny-systems/modules/http-module/components/etc"
 	"github.com/tiny-systems/module/module"
 )
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tiny-systems/common-module/internal/testharness"
+	"github.com/tiny-systems/modules/common-module/internal/testharness"
 	"github.com/tiny-systems/module/api/v1alpha1"
 )
 

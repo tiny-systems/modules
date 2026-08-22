@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tiny-systems/http-module/components/etc"
+	"github.com/tiny-systems/modules/http-module/components/etc"
 	"github.com/tiny-systems/module/api/v1alpha1"
 	"github.com/tiny-systems/module/module"
 	"github.com/tiny-systems/module/registry"

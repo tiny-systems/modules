@@ -1,5 +1,5 @@
 name: store-module
-source: github.com/tiny-systems/store-module
+source: github.com/tiny-systems/modules/store-module
 description: Document store — persist and query JSON documents
 category: data
 versions:

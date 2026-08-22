@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tiny-systems/common-module/components/inject"
-	"github.com/tiny-systems/common-module/internal/testharness"
+	"github.com/tiny-systems/modules/common-module/components/inject"
+	"github.com/tiny-systems/modules/common-module/internal/testharness"
 )
 
 func TestBasicFlow(t *testing.T) {

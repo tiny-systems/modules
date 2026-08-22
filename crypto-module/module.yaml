@@ -1,5 +1,5 @@
 name: crypto-module
-source: github.com/tiny-systems/crypto-module
+source: github.com/tiny-systems/modules/crypto-module
 description: Cryptography — X.509 certificate generation
 category: security
 versions:

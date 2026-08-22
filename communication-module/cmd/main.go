@@ -12,10 +12,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tiny-systems/module/cli"
 
-	_ "github.com/tiny-systems/communication-module/components/email/smtp"
-	_ "github.com/tiny-systems/communication-module/components/slack/command"
-	_ "github.com/tiny-systems/communication-module/components/slack/interaction"
-	_ "github.com/tiny-systems/communication-module/components/slack/send"
+	_ "github.com/tiny-systems/modules/communication-module/components/email/smtp"
+	_ "github.com/tiny-systems/modules/communication-module/components/slack/command"
+	_ "github.com/tiny-systems/modules/communication-module/components/slack/interaction"
+	_ "github.com/tiny-systems/modules/communication-module/components/slack/send"
 )
 
 // RootCmd represents the base command when called without any subcommands
