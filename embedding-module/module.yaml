@@ -3,7 +3,7 @@ source: github.com/tiny-systems/modules/embedding-module
 description: Text embeddings for semantic / vector search
 category: ai
 versions:
-- version: 0.0.26
-  image: ghcr.io/tiny-systems/embedding-module:0.0.26
+- version: 0.11.0
+  image: ghcr.io/tiny-systems/embedding-module:0.11.0
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

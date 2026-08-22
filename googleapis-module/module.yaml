@@ -3,7 +3,7 @@ source: github.com/tiny-systems/modules/googleapis-module
 description: Google Calendar, Firestore, and OAuth components
 category: google
 versions:
-- version: 0.3.23
-  image: ghcr.io/tiny-systems/googleapis-module:0.3.23
+- version: 0.11.0
+  image: ghcr.io/tiny-systems/googleapis-module:0.11.0
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

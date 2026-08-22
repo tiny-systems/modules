@@ -3,7 +3,7 @@ source: github.com/tiny-systems/modules/encoding-module
 description: Encoding — JSON, XML, CSV, JWT, Go templates and text chunking
 category: core
 versions:
-- version: 0.6.21
-  image: ghcr.io/tiny-systems/encoding-module:0.6.21
+- version: 0.11.0
+  image: ghcr.io/tiny-systems/encoding-module:0.11.0
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12
