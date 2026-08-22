@@ -3,7 +3,7 @@ source: github.com/tiny-systems/modules/js-module
 description: JavaScript eval — run JS to parse, transform, and compute over flow data (the code/eval component)
 category: core
 versions:
-- version: 0.12.0
+- version: 0.12.1
   image: ghcr.io/tiny-systems/modules/js-module:0.12.0
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

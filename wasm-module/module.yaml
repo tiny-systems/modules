@@ -3,7 +3,7 @@ source: github.com/tiny-systems/modules/wasm-module
 description: WebAssembly — run WASM modules over flow data
 category: core
 versions:
-- version: 0.12.0
+- version: 0.12.1
   image: ghcr.io/tiny-systems/modules/wasm-module:0.12.0
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12

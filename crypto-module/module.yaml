@@ -3,7 +3,7 @@ source: github.com/tiny-systems/modules/crypto-module
 description: Cryptography — X.509 certificate generation
 category: security
 versions:
-- version: 0.12.0
+- version: 0.12.1
   image: ghcr.io/tiny-systems/modules/crypto-module:0.12.0
   chart: tinysystems/tinysystems-operator
   chartVersion: 0.2.12
